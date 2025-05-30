@@ -325,7 +325,11 @@ class Simulacion:
                 # For the purpose of the state vector, we can generate a random number here
                 # just for display, or better, pass the info from the client object when it's handled.
                 # Given the change in procesar_llegada_cliente, the client object is directly available.
-                
+                next_llegada_event_in_list = next((e for e in self.eventos if e.tipo == "Llegada Cliente"), None)
+                if next_llegada_event_in_list:
+                    row_data["Proxima llegada"] = f"{next_llegada_event_in_list.tiempo:.2f}"
+                else:
+                    row_data["Proxima llegada"] = "N/A"
                 # If client was immediately served:
                 if self.relojeria.ayudante.estado == "Ocupado" and self.relojeria.ayudante.tiempo_fin_tarea > self.reloj:
                     current_client_serving = next((c for c in self.relojeria.clientes_en_sistema.values() if c.estado == "Siendo Atendido"), None)

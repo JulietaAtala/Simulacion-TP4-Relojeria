@@ -6,6 +6,6 @@ class Evento:
         self.id_cliente = id_cliente
         self.id_reloj = id_reloj
 
-    def __lt__(self, other):
-        return self.tiempo < other.tiempo
+    #def __lt__(self, other):
+        #return self.tiempo < other.tiempo
     
