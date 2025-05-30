@@ -440,7 +440,7 @@ class Simulacion:
             self.resultados_vector_estado.append(ordered_final_row)
 
 
-        # Final statistics for display in UI labels
+        # Estadísticas finales
         estadisticas_finales = {
             "prob_cliente_retira_no_listo": f"{prob_cliente_retira_no_listo:.2%}",
             "porc_ocup_ayudante": f"{porc_ocup_ayudante:.2f}%",

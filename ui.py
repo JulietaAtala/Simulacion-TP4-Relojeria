@@ -110,7 +110,7 @@ def ventana_simulacion():
         label_ocup_ayudante.config(text=f"Porc. ocupación ayudante: {estadisticas['porc_ocup_ayudante']}")
         label_ocup_relojero.config(text=f"Porc. ocupación relojero: {estadisticas['porc_ocup_relojero']}")
         label_cola_max.config(text=f"Cola máxima de clientes: {estadisticas['cola_max_clientes']}")
-
+    # Exportar los datos de la tabla como un archivo CSV
     def exportar_a_csv():
         # Get filename from user
         file_path = filedialog.asksaveasfilename(
