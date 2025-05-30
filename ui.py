@@ -1,7 +1,8 @@
-# ui.py (Major adaptations)
 import tkinter as tk
-from tkinter import ttk
-import tkinter.messagebox
+from tkinter import ttk, filedialog, messagebox
+import csv # Import the csv module
+
+# Assuming simulacion.py (with all its internal classes) is available
 from simulacion import Simulacion # Import the main simulation class
 
 def ventana_simulacion():
@@ -92,7 +93,7 @@ def ventana_simulacion():
             hora_desde = float(entry_hora_desde.get())
             cant_iteraciones = int(entry_cant_iteraciones.get())
         except ValueError:
-            tk.messagebox.showerror("Error de entrada", "Por favor ingrese valores numéricos válidos.")
+            messagebox.showerror("Error de entrada", "Por favor ingrese valores numéricos válidos.")
             return
 
         # Max iterations is set to 100000 as per requirements
@@ -100,7 +101,8 @@ def ventana_simulacion():
         vector_estado, estadisticas = sim.ejecutar_simulacion(tiempo_simulacion, cant_iteraciones, hora_desde)
 
         # Populate the Treeview with results, skipping the header row from sim.resultados_vector_estado
-        for row in vector_estado[1:]: # Skip the headers row
+        # The first row of vector_estado is already the headers
+        for row in vector_estado[1:]: # Skip the headers row provided by Simulacion
             tabla.insert("", tk.END, values=row)
 
         # Update statistics labels
@@ -109,12 +111,43 @@ def ventana_simulacion():
         label_ocup_relojero.config(text=f"Porc. ocupación relojero: {estadisticas['porc_ocup_relojero']}")
         label_cola_max.config(text=f"Cola máxima de clientes: {estadisticas['cola_max_clientes']}")
 
+    def exportar_a_csv():
+        # Get filename from user
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".csv",
+            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
+            title="Guardar Vector de Estado como CSV"
+        )
+        
+        if not file_path: # User cancelled
+            return
+
+        try:
+            with open(file_path, mode='w', newline='', encoding='utf-8') as file:
+                writer = csv.writer(file)
+                
+                # Write headers
+                writer.writerow(columnas) # Use the 'columnas' list defined for the Treeview
+                
+                # Write data rows from the Treeview
+                for row_id in tabla.get_children():
+                    row_values = tabla.item(row_id)['values']
+                    writer.writerow(row_values)
+            
+            messagebox.showinfo("Exportar CSV", "Datos exportados exitosamente a:\n" + file_path)
+        except Exception as e:
+            messagebox.showerror("Error al exportar", f"No se pudo exportar el archivo: {e}")
+
 
     btn_simular = tk.Button(frame_parametros, text="Simular", command=ejecutar_simulacion_y_mostrar, font=("Roboto", 12, "bold"), bg="#4CAF50", fg="white")
-    btn_simular.grid(row=0, column=2, rowspan=3, padx=10, pady=5, sticky="e")
+    btn_simular.grid(row=0, column=2, rowspan=2, padx=10, pady=5, sticky="e") # Adjusted rowspan
+
+    btn_exportar_csv = tk.Button(frame_parametros, text="Descargar CSV", command=exportar_a_csv, font=("Roboto", 12, "bold"), bg="#008CBA", fg="white")
+    btn_exportar_csv.grid(row=2, column=2, padx=10, pady=5, sticky="e")
+
 
     ventana.mainloop()
 
-
+# To run the UI, you would call:
 if __name__ == "__main__":
-     ventana_simulacion()
+    ventana_simulacion()

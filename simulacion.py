@@ -77,7 +77,8 @@ class Simulacion:
         
         tipo_cliente, rnd_tipo_cliente = self.generar_tipo_cliente()
         
-        cliente = Cliente(id_cliente, evento_actual.tiempo, tipo_cliente, estado="En cola")
+        # Initialize client state as "Esperando" before deciding queue or service
+        cliente = Cliente(id_cliente, evento_actual.tiempo, tipo_cliente, estado="Esperando") 
         cliente.random_tipo_cliente = rnd_tipo_cliente # Store random for client type
 
         if tipo_cliente == "Entregar":
@@ -87,20 +88,43 @@ class Simulacion:
             self.relojeria.total_clientes_tipo_retirar_que_llegaron += 1 # Increment counter for 'Retirar' clients
 
         self.relojeria.clientes_en_sistema[id_cliente] = cliente # Add client to active system
-        self.relojeria.cola_clientes.append(cliente) # Add client to assistant's queue
 
-        # Update max client queue if necessary
-        if len(self.relojeria.cola_clientes) > self.relojeria.max_cola_clientes:
-            self.relojeria.max_cola_clientes = len(self.relojeria.cola_clientes)
+        # --- CRITICAL CHANGE FOR QUEUE LOGIC ---
+        if self.relojeria.ayudante.estado == "Libre":
+            # Assistant is free, serve immediately
+            self.relojeria.tiempo_ocio_ayudante += (self.reloj - self.relojeria.ultimo_tiempo_ayudante_libre) # Update idle time
 
-        # Schedule next arrival
+            cliente.estado = "Siendo Atendido" # Client is immediately attended
+            self.relojeria.ayudante.estado = "Ocupado"
+
+            tiempo_atencion, rnd_atencion = self.generar_tiempo_atencion_ayudante(cliente.tipo_cliente)
+            cliente.tiempo_atencion = tiempo_atencion # Store actual attention time
+            cliente.random_tiempo_atencion = rnd_atencion # Store random for attention time
+            
+            self.relojeria.ayudante.random_tiempo_tarea = rnd_atencion # Store random for assistant's task (if applicable)
+            self.relojeria.ayudante.tiempo_fin_tarea = self.reloj + tiempo_atencion
+
+            # Schedule Fin Atencion Ayudante event
+            evento = Evento(tipo="Fin Atencion Ayudante", tiempo=self.relojeria.ayudante.tiempo_fin_tarea, id_cliente=cliente.id_cliente)
+            evento.cliente_obj_being_served = cliente # Pass the actual client object for accurate calculation
+            self.eventos.append(evento)
+            self.eventos.sort(key=lambda ev: ev.tiempo) # Maintain sorted event list
+        else:
+            # Assistant is busy, client joins the queue
+            cliente.estado = "En cola" # Client is waiting in queue
+            self.relojeria.cola_clientes.append(cliente) # Add client to assistant's queue
+
+            # Update max client queue if necessary
+            if len(self.relojeria.cola_clientes) > self.relojeria.max_cola_clientes:
+                self.relojeria.max_cola_clientes = len(self.relojeria.cola_clientes)
+
+        # Schedule next arrival (this is separate and always happens regardless of service)
         self.generar_proxima_llegada()
-
-        # Try to serve client if assistant is free
-        self.intentar_atender_cliente()
 
     def intentar_atender_cliente(self):
         """Intenta que el ayudante atienda a un cliente si está libre y hay clientes en cola."""
+        # This function is now ONLY called when an assistant finishes a task (Fin Atencion Ayudante).
+        # It checks if the assistant is free AND there's someone in the queue.
         if self.relojeria.ayudante.estado == "Libre" and self.relojeria.cola_clientes:
             # Update idle time for assistant
             self.relojeria.tiempo_ocio_ayudante += (self.reloj - self.relojeria.ultimo_tiempo_ayudante_libre)
@@ -121,7 +145,7 @@ class Simulacion:
             evento = Evento(tipo="Fin Atencion Ayudante", tiempo=self.relojeria.ayudante.tiempo_fin_tarea, id_cliente=cliente_atendiendo.id_cliente)
             evento.cliente_obj_being_served = cliente_atendiendo # Pass the actual client object for accurate calculation
             self.eventos.append(evento)
-            self.eventos.sort(key=lambda ev: ev.tiempo)
+            self.eventos.sort(key=lambda ev: ev.tiempo) # Maintain sorted event list
 
     def procesar_fin_atencion_ayudante(self, evento_actual):
         """Procesa un evento de fin de atención del ayudante."""
@@ -269,22 +293,19 @@ class Simulacion:
             row_data["Reloj"] = f"{self.reloj:.2f}"
             row_data["Evento"] = evento_actual.tipo
 
-            # Capture previous state for certain fields before processing the event
-            prev_relojero_state = self.relojeria.relojero.estado
-            prev_ayudante_state = self.relojeria.ayudante.estado
-            prev_relojero_tiempo_fin_tarea = self.relojeria.relojero.tiempo_fin_tarea
-            prev_ayudante_tiempo_fin_tarea = self.relojeria.ayudante.tiempo_fin_tarea
-
             # Process the event and update system state
             if evento_actual.tipo == "Llegada Cliente":
-                # Values used for display are determined by the *next* values, not the current one
-                # For RND Llegada and Tiempo entre llegadas, we store them directly on the event when scheduled
                 row_data["RND Llegada"] = f"{evento_actual.random_llegada:.4f}"
                 
-                # Before generating next arrival, capture its timing
-                next_arrival_time, next_arrival_rnd = self.generar_tiempo_entre_llegadas()
-                row_data["Tiempo entre llegadas"] = f"{next_arrival_time:.2f}"
-                row_data["Proxima llegada"] = f"{self.reloj + next_arrival_time:.2f}" # This will be the scheduled time of next arrival
+                # To get the *next* arrival details, we need to peek at the next scheduled event
+                next_llegada_event = next((e for e in self.eventos if e.tipo == "Llegada Cliente"), None)
+                if next_llegada_event:
+                    tll_for_display = next_llegada_event.tiempo - self.reloj # Calculate TLL for display
+                    row_data["Tiempo entre llegadas"] = f"{tll_for_display:.2f}"
+                    row_data["Proxima llegada"] = f"{next_llegada_event.tiempo:.2f}"
+                else:
+                    row_data["Tiempo entre llegadas"] = "N/A"
+                    row_data["Proxima llegada"] = "N/A"
                 
                 # This is the actual event processing
                 self.procesar_llegada_cliente(evento_actual)
@@ -292,45 +313,59 @@ class Simulacion:
                 # For Tipo Cliente, the client object has the determined type
                 # We need to access the client object that was just created/added.
                 # Since id_proximo_cliente is incremented *after* client creation, it's the ID of the just created client.
-                client_obj_for_display = self.relojeria.clientes_en_sistema.get(self.id_proximo_cliente - 1)
-                if client_obj_for_display:
-                    row_data["RND Tipo Cliente"] = f"{client_obj_for_display.random_tipo_cliente:.4f}"
-                    row_data["Tipo Cliente"] = client_obj_for_display.tipo_cliente
+                # Find the client based on its state and time
+                # If served immediately, it will be in Ayudante's context. If in queue, in queue.
+                # This part is tricky because the client object itself holds the rnd_tipo_cliente.
+                # The easiest way to retrieve it for display is to pass it through the event if possible,
+                # or ensure the client object is easily accessible.
+                # For simplicity here, we'll assume the random number generation is done *before* the client object.
+                # So we can just use the random number from the event's random_llegada, and infer for other fields.
+                # However, for `RND Tipo Cliente`, it's tied to the logic inside procesar_llegada_cliente.
+                # Let's directly get the random number used from the logic for the row display.
+                # Note: This is less ideal, but to avoid making Evento too complex.
+                
+                # To accurately get the RND_Tipo_Cliente, we'd need to store it with the event when generated.
+                # For the purpose of the state vector, we can generate a random number here
+                # just for display, or better, pass the info from the client object when it's handled.
+                # Given the change in procesar_llegada_cliente, the client object is directly available.
+                
+                # If client was immediately served:
+                if self.relojeria.ayudante.estado == "Ocupado" and self.relojeria.ayudante.tiempo_fin_tarea > self.reloj:
+                    current_client_serving = next((c for c in self.relojeria.clientes_en_sistema.values() if c.estado == "Siendo Atendido"), None)
+                    if current_client_serving and current_client_serving.tiempo_llegada == evento_actual.tiempo:
+                        row_data["RND Tipo Cliente"] = f"{current_client_serving.random_tipo_cliente:.4f}"
+                        row_data["Tipo Cliente"] = current_client_serving.tipo_cliente
+                # If client went to queue:
+                elif len(self.relojeria.cola_clientes) > 0 and self.relojeria.cola_clientes[-1].tiempo_llegada == evento_actual.tiempo:
+                    last_client_in_queue = self.relojeria.cola_clientes[-1]
+                    row_data["RND Tipo Cliente"] = f"{last_client_in_queue.random_tipo_cliente:.4f}"
+                    row_data["Tipo Cliente"] = last_client_in_queue.tipo_cliente
+
 
             elif evento_actual.tipo == "Fin Atencion Ayudante":
                 client_obj_finished = evento_actual.cliente_obj_being_served # Get the actual client object
                 if client_obj_finished:
                     row_data["RND Atencion Ayudante"] = f"{client_obj_finished.random_tiempo_atencion:.4f}" if client_obj_finished.random_tiempo_atencion is not None else ""
                     row_data["Tiempo Atencion Ayudante"] = f"{client_obj_finished.tiempo_atencion:.2f}"
-                    row_data["Fin Atencion Ayudante"] = f"{evento_actual.tiempo:.2f}" # When this event finished
+                row_data["Fin Atencion Ayudante"] = f"{evento_actual.tiempo:.2f}" # When this event finished
                 self.procesar_fin_atencion_ayudante(evento_actual)
-                # Next Fin Atencion Ayudante might be scheduled if assistant starts new task
-                if self.relojeria.ayudante.estado == "Ocupado":
-                    # This will be the finish time of the *next* task, if any started immediately
-                    # Or the previous scheduled time if no new task started right away
-                    next_fin_atencion_ayudante = next((e.tiempo for e in self.eventos if e.tipo == "Fin Atencion Ayudante"), "")
-                    # For display of 'Fin Atencion Ayudante' column for the current row, it's the current time.
-                    # The next one is for the 'Proxima llegada' type columns.
-                    pass # Handled by the row_data["Fin Atencion Ayudante"] above
-
+                
             elif evento_actual.tipo == "Fin Reparacion Relojero":
                 reloj_obj_finished = evento_actual.reloj_obj_being_repaired # Get the actual clock object
                 if reloj_obj_finished:
                     row_data["RND Reparacion Relojero"] = f"{self.relojeria.relojero.random_tiempo_tarea:.4f}" if self.relojeria.relojero.random_tiempo_tarea is not None else ""
-                    # Calculate actual time taken for this repair
                     repair_duration = reloj_obj_finished.tiempo_fin_reparacion - reloj_obj_finished.tiempo_inicio_reparacion
                     row_data["Tiempo Reparacion Relojero"] = f"{repair_duration:.2f}"
-                    row_data["Fin Reparacion Relojero"] = f"{evento_actual.tiempo:.2f}" # When repair finished
+                row_data["Fin Reparacion Relojero"] = f"{evento_actual.tiempo:.2f}" # When repair finished
                 self.procesar_fin_reparacion_relojero(evento_actual)
-                # After repair, relojero enters cleaning state, so new Fin Limpieza is scheduled
-                if self.relojeria.relojero.estado == "Limpiando":
+                if self.relojeria.relojero.estado == "Limpiando": # Relojero starts cleaning
                     row_data["Fin Limpieza Relojero"] = f"{self.relojeria.relojero.tiempo_fin_tarea:.2f}"
 
 
             elif evento_actual.tipo == "Fin Limpieza Relojero":
+                row_data["Fin Limpieza Relojero"] = f"{evento_actual.tiempo:.2f}" # When cleanup finished
                 self.procesar_fin_limpieza_relojero(evento_actual)
-                # No new Fin Limpieza is scheduled immediately after one finishes.
-
+            
             # Update common state variables for the current row
             row_data["Estado Ayudante"] = self.relojeria.ayudante.estado
             row_data["Cola Clientes"] = len(self.relojeria.cola_clientes)
@@ -376,12 +411,6 @@ class Simulacion:
         if self.relojeria.total_clientes_tipo_retirar_que_llegaron > 0:
             prob_cliente_retira_no_listo = self.relojeria.acum_clientes_retiran_no_listos / self.relojeria.total_clientes_tipo_retirar_que_llegaron
 
-        # Add the last row (corresponding to time X or max iterations) if it's not already covered
-        # and if the simulation ran to the maximum time/iterations.
-        # Check if the last row was already appended. If not, append it.
-        # This prevents duplicate last rows if the simulation happened to end exactly
-        # at the time where the displayed rows ended.
-        
         # Prepare the final row data (without temporal objects)
         final_row_data = {header: "" for header in headers} # Initialize with empty strings
         final_row_data["Fila"] = "FINAL" # Or a special indicator
@@ -407,8 +436,6 @@ class Simulacion:
         ordered_final_row = [final_row_data[header] for header in headers]
         
         # Check if this exact row (or a similar final row) is already the last one
-        # This is a basic check to prevent duplicates if the "i iterations from j hour"
-        # happens to include the exact end of simulation.
         if not self.resultados_vector_estado or self.resultados_vector_estado[-1][0] != "FINAL":
             self.resultados_vector_estado.append(ordered_final_row)
 
