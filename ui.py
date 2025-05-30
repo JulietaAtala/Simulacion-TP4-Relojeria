@@ -72,6 +72,9 @@ def ventana_simulacion():
         tabla.heading(col, text=col)
         tabla.column(col, width=120, anchor="center") # Adjust width as needed
 
+    tabla.tag_configure("evenrow", background="#f2f2f2") # Light gray for even rows
+    tabla.tag_configure("oddrow", background="#ffffff") # White for odd rows
+    
     # Scrollbars
     scrollbar_horizontal = ttk.Scrollbar(frame_tabla, orient=tk.HORIZONTAL, command=tabla.xview)
     scrollbar_horizontal.grid(row=1, column=0, sticky="ew")
@@ -99,11 +102,10 @@ def ventana_simulacion():
         # Max iterations is set to 100000 as per requirements
         sim = Simulacion(tiempo_simulacion, 100000)
         vector_estado, estadisticas = sim.ejecutar_simulacion(tiempo_simulacion, cant_iteraciones, hora_desde)
-
-        # Populate the Treeview with results, skipping the header row from sim.resultados_vector_estado
-        # The first row of vector_estado is already the headers
-        for row in vector_estado[1:]: # Skip the headers row provided by Simulacion
-            tabla.insert("", tk.END, values=row)
+        
+        for idx, row in enumerate(vector_estado[1:]):
+            tag = "evenrow" if idx % 2 == 0 else "oddrow"
+            tabla.insert("", tk.END, values=row, tags=(tag,))
 
         # Update statistics labels
         label_prob_no_reparado.config(text=f"Prob. cliente retira no reparado: {estadisticas['prob_cliente_retira_no_listo']}")
@@ -139,10 +141,10 @@ def ventana_simulacion():
             messagebox.showerror("Error al exportar", f"No se pudo exportar el archivo: {e}")
 
 
-    btn_simular = tk.Button(frame_parametros, text="Simular", command=ejecutar_simulacion_y_mostrar, font=("Roboto", 12, "bold"), bg="#4CAF50", fg="white")
+    btn_simular = tk.Button(frame_parametros, text="Simular", command=ejecutar_simulacion_y_mostrar, font=("Roboto", 12, "bold"), bg="#70F563", fg="white")
     btn_simular.grid(row=0, column=2, rowspan=2, padx=10, pady=5, sticky="e") # Adjusted rowspan
 
-    btn_exportar_csv = tk.Button(frame_parametros, text="Descargar CSV", command=exportar_a_csv, font=("Roboto", 12, "bold"), bg="#008CBA", fg="white")
+    btn_exportar_csv = tk.Button(frame_parametros, text="Descargar CSV", command=exportar_a_csv, font=("Roboto", 12, "bold"), bg="#57CAF0", fg="white")
     btn_exportar_csv.grid(row=2, column=2, padx=10, pady=5, sticky="e")
 
 
