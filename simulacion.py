@@ -55,7 +55,7 @@ class Simulacion:
     def generar_tiempo_reparacion_relojero(self):
         """Genera el tiempo de reparación del relojero según U(18, 22) minutos."""
         rnd = random.random()
-        tiempo_reparacion = 18 + rnd * (22 - 18) # U(18, 22)
+        tiempo_reparacion = abs(18 + (rnd * (22 - 18))) # U(18, 22)
         return tiempo_reparacion, rnd
 
     def generar_proxima_llegada(self):
@@ -295,17 +295,14 @@ class Simulacion:
 
             # Process the event and update system state
             if evento_actual.tipo == "Llegada Cliente":
+                # Values used for display are determined by the *next* values, not the current one
+                # For RND Llegada and Tiempo entre llegadas, we store them directly on the event when scheduled
                 row_data["RND Llegada"] = f"{evento_actual.random_llegada:.4f}"
                 
-                # To get the *next* arrival details, we need to peek at the next scheduled event
-                next_llegada_event = next((e for e in self.eventos if e.tipo == "Llegada Cliente"), None)
-                if next_llegada_event:
-                    tll_for_display = next_llegada_event.tiempo - self.reloj # Calculate TLL for display
-                    row_data["Tiempo entre llegadas"] = f"{tll_for_display:.2f}"
-                    row_data["Proxima llegada"] = f"{next_llegada_event.tiempo:.2f}"
-                else:
-                    row_data["Tiempo entre llegadas"] = "N/A"
-                    row_data["Proxima llegada"] = "N/A"
+                # Before generating next arrival, capture its timing
+                next_arrival_time, next_arrival_rnd = self.generar_tiempo_entre_llegadas()
+                row_data["Tiempo entre llegadas"] = f"{next_arrival_time:.2f}"
+                row_data["Proxima llegada"] = f"{self.reloj + next_arrival_time:.2f}" # This will be the scheduled time of next arrival
                 
                 # This is the actual event processing
                 self.procesar_llegada_cliente(evento_actual)

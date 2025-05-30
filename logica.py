@@ -8,3 +8,4 @@ class Evento:
 
     def __lt__(self, other):
         return self.tiempo < other.tiempo
+    
