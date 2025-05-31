@@ -315,11 +315,28 @@ def ventana_simulacion():
         except Exception as e:
             messagebox.showerror("Error al exportar", f"No se pudo exportar el archivo: {e}")
 
+    def copiar_tabla_portapapeles():
+        filas = []
+        filas.append('\t'.join(columnas))
+        for item_id in tabla.get_children():
+            valores = tabla.item(item_id)['values']
+            fila_str = [str(v) if v is not None else "" for v in valores]
+            filas.append('\t'.join(fila_str))
+        texto_copiado = '\n'.join(filas)
+
+        ventana.clipboard_clear()
+        ventana.clipboard_append(texto_copiado)
+        tk.messagebox.showinfo("Copiado", "Contenido copiado al portapapeles. Ahora puede pegarlo en Excel.")
+
+
     btn_simular = tk.Button(frame_parametros, text="Simular", command=ejecutar_simulacion_y_mostrar, font=("Roboto", 12, "bold"), bg="#4CAF50", fg="white")
     btn_simular.grid(row=0, column=col_start + 6, rowspan=3, padx=10, pady=5, sticky="e") 
 
+    btn_copiar = tk.Button(frame_parametros, text="Copiar para Excel", command=copiar_tabla_portapapeles, font=("Roboto", 12, "bold"), bg="#D392F1", fg="white")
+    btn_copiar.grid(row=2, column=col_start + 6, rowspan=3, padx=10, pady=5, sticky="e")
+
     btn_exportar_csv = tk.Button(frame_parametros, text="Descargar CSV", command=exportar_a_csv, font=("Roboto", 12, "bold"), bg="#008CBA", fg="white")
-    btn_exportar_csv.grid(row=3, column=col_start + 6, rowspan=3, padx=10, pady=5, sticky="e") 
+    btn_exportar_csv.grid(row=4, column=col_start + 6, rowspan=3, padx=10, pady=5, sticky="e")
 
     ventana.mainloop()
 
