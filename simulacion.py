@@ -360,12 +360,12 @@ class Simulacion:
                 if reloj_obj_finished:
                     row_data["RND Reparacion Relojero"] = f"{self.relojeria.relojero.random_tiempo_tarea:.4f}" if self.relojeria.relojero.random_tiempo_tarea is not None else ""
                     
-                    repair_duration = reloj_obj_finished.tiempo_fin_reparacion - reloj_obj_finished.tiempo_inicio_reparacion
+                    repair_duration = evento_actual.tiempo - reloj_obj_finished.tiempo_inicio_reparacion
                     
                     # Impresión de depuración también incluida aquí para el valor de visualización
                     if repair_duration < 0:
                         print(f"DEBUG DISPLAY ERROR: Duración de visualización negativa para Reloj ID {reloj_obj_finished.id_reloj}!")
-                        print(f"  Duración: {repair_duration:.2f}, Inicio: {reloj_obj_finished.tiempo_inicio_reparacion:.2f}, Fin: {reloj_obj_finished.tiempo_fin_reparacion:.2f}")
+                        print(f"  Duración: {repair_duration:.2f}, Inicio: {reloj_obj_finished.tiempo_inicio_reparacion:.2f}, Fin: {evento_actual.tiempo:.2f}")
 
                     row_data["Tiempo Reparacion Relojero"] = f"{repair_duration:.2f}"
                 row_data["Fin Reparacion Relojero"] = f"{evento_actual.tiempo:.2f}"
