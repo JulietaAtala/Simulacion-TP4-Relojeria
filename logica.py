@@ -10,6 +10,8 @@ class Evento:
         self.id_cliente = id_cliente
         self.id_reloj = id_reloj
         self.random_llegada = None
+        self.random_llegada_que_lo_genero = None
+        self.tiempo_entre_llegadas_que_lo_genero = None
         self.cliente_obj_being_served = None
         self.reloj_obj_being_repaired = None
         # ... (otros atributos que puedas tener) ...

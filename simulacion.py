@@ -77,7 +77,7 @@ class Simulacion:
     def generar_tiempo_reparacion_relojero(self):
         """Genera el tiempo de reparación del relojero según U(reparacion_min, reparacion_max) minutos."""
         rnd = random.random()
-        tiempo_reparacion = self.reparacion_min + (rnd * (self.reparacion_max - self.reparacion_min)) 
+        tiempo_reparacion = self.reparacion_min + rnd * (self.reparacion_max - self.reparacion_min)
         return tiempo_reparacion, rnd
 
     def generar_proxima_llegada(self):
@@ -275,6 +275,7 @@ class Simulacion:
         self.id_proximo_cliente = 1
         self.resultados_vector_estado = []
         self.full_simulation_rows = [] # Reiniciar para una nueva ejecución
+
         Reloj._id_counter = 0 
 
         # Generar el primer evento de llegada
