@@ -125,6 +125,7 @@ class Simulacion:
             
             self.relojeria.ayudante.random_tiempo_tarea = rnd_atencion 
             self.relojeria.ayudante.tiempo_fin_tarea = self.reloj + tiempo_atencion
+            cliente.fin_atencion_programado = self.relojeria.ayudante.tiempo_fin_tarea
 
             evento = Evento(tipo="Fin Atencion Ayudante", tiempo=self.relojeria.ayudante.tiempo_fin_tarea, id_cliente=cliente.id_cliente)
             evento.cliente_obj_being_served = cliente 
@@ -138,6 +139,7 @@ class Simulacion:
 
         # Programar la próxima llegada después de procesar la actual
         self.generar_proxima_llegada()
+
 
     def intentar_atender_cliente(self):
         """Intenta que el ayudante atienda a un cliente si está libre y hay clientes en cola."""
@@ -156,6 +158,8 @@ class Simulacion:
             self.relojeria.ayudante.cliente_actual = cliente_atendiendo
             self.relojeria.ayudante.random_tiempo_tarea = rnd_atencion
             self.relojeria.ayudante.tiempo_fin_tarea = self.reloj + tiempo_atencion
+
+            cliente_atendiendo.fin_atencion_programado = self.relojeria.ayudante.tiempo_fin_tarea
 
             evento = Evento(tipo="Fin Atencion Ayudante", tiempo=self.relojeria.ayudante.tiempo_fin_tarea, id_cliente=cliente_atendiendo.id_cliente)
             evento.cliente_obj_being_served = cliente_atendiendo
@@ -338,19 +342,30 @@ class Simulacion:
                     row_data["RND Tipo Cliente"] = f"{client_just_processed.random_tipo_cliente:.4f}"
                     row_data["Tipo Cliente"] = client_just_processed.tipo_cliente
                     row_data["Cliente Evento ID"] = client_just_processed.id_cliente
-                    row_data["Estado Cliente Evento"] = client_just_processed.estado # Será "Siendo Atendido" o "En cola"
+                    row_data["Estado Cliente Evento"] = client_just_processed.estado 
+                    if client_just_processed.estado == "Siendo Atendido":
+                        rnd_val = client_just_processed.random_tiempo_atencion
+                        row_data["RND Atencion Ayudante"] = f"{rnd_val:.4f}" if rnd_val is not None else ""
+                        row_data["Tiempo Atencion Ayudante"] = f"{client_just_processed.tiempo_atencion:.2f}"
+                        row_data["Fin Atencion Ayudante"] = f"{client_just_processed.fin_atencion_programado:.2f}"# Será "Siendo Atendido" o "En cola"
 
             elif evento_actual.tipo == "Fin Atencion Ayudante":
-                client_obj_finished = evento_actual.cliente_obj_being_served 
-                if client_obj_finished:
-                    row_data["RND Atencion Ayudante"] = f"{client_obj_finished.random_tiempo_atencion:.4f}" if client_obj_finished.random_tiempo_atencion is not None else ""
-                    row_data["Tiempo Atencion Ayudante"] = f"{client_obj_finished.tiempo_atencion:.2f}"
-                row_data["Fin Atencion Ayudante"] = f"{evento_actual.tiempo:.2f}"
-                
-                self.procesar_fin_atencion_ayudante(evento_actual) # Esto actualiza el estado del sistema y establece el indicador client_departed
+                # Primero procesamos el evento. Esto liberará al ayudante
+                # y POSIBLEMENTE atenderá a un nuevo cliente de la cola.
+                self.procesar_fin_atencion_ayudante(evento_actual)
 
+                # Ahora, verificamos si un NUEVO cliente está siendo atendido.
+                cliente_que_inicia_atencion = self.relojeria.ayudante.cliente_actual
+                if cliente_que_inicia_atencion:
+                    # Si hay un nuevo cliente, este es su INICIO de servicio. Mostramos sus datos.
+                    rnd_val = cliente_que_inicia_atencion.random_tiempo_atencion
+                    row_data["RND Atencion Ayudante"] = f"{rnd_val:.4f}" if rnd_val is not None else ""
+                    row_data["Tiempo Atencion Ayudante"] = f"{cliente_que_inicia_atencion.tiempo_atencion:.2f}"
+                    row_data["Fin Atencion Ayudante"] = f"{cliente_que_inicia_atencion.fin_atencion_programado:.2f}"
+
+                # Mostramos el ID del cliente que TERMINÓ su servicio en esta fila.
                 row_data["Cliente Evento ID"] = evento_actual.client_finished_id
-                row_data["Estado Cliente Evento"] = evento_actual.client_finished_state 
+                row_data["Estado Cliente Evento"] = evento_actual.client_finished_state
 
                 if hasattr(evento_actual, 'client_departed') and evento_actual.client_departed:
                     current_row_tags.append("Departed") 
