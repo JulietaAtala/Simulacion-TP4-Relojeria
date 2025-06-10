@@ -277,7 +277,7 @@ def ventana_simulacion():
         global full_sim_data_for_export
         full_sim_data_for_export = full_sim_data
 
-        for row_values in vector_estado_display[1:]: 
+        for row_values in vector_estado_display[0:]: 
             tags_to_apply = []
             # Find the corresponding row in full_sim_data to get tags
             for original_full_row_values, original_tags in full_sim_data_for_export:
@@ -342,5 +342,3 @@ def ventana_simulacion():
 
 if __name__ == "__main__":
     ventana_simulacion()
-
-    
