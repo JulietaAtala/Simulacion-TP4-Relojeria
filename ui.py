@@ -22,7 +22,7 @@ def ventana_simulacion():
     tk.Label(frame_parametros, text="Tiempo a simular (min):", font=("Roboto", 10, "bold")).grid(row=row_idx, column=0, padx=5, pady=2, sticky="w")
     entry_tiempo_simulacion = tk.Entry(frame_parametros, width=8)
     entry_tiempo_simulacion.grid(row=row_idx, column=1, padx=5, pady=2, sticky="w")
-    entry_tiempo_simulacion.insert(0, "480") 
+    entry_tiempo_simulacion.insert(0, "250") 
 
     row_idx += 1
     tk.Label(frame_parametros, text="Mostrar desde hora (min):", font=("Roboto", 10, "bold")).grid(row=row_idx, column=0, padx=5, pady=2, sticky="w")
@@ -200,6 +200,8 @@ def ventana_simulacion():
     full_sim_data_for_export = []
 
     def ejecutar_simulacion_y_mostrar():
+        nonlocal tabla
+        
         for i in tabla.get_children():
             tabla.delete(i) # Clear previous results
 
@@ -281,11 +283,40 @@ def ventana_simulacion():
 
         
         # Call execute_simulation (which now only takes display parameters)
-        vector_estado_display, estadisticas, full_sim_data = sim.ejecutar_simulacion(
+        vector_estado_display, estadisticas, full_sim_data, cantidad_cliente = sim.ejecutar_simulacion(
             iteraciones_a_mostrar=cant_iteraciones, 
             hora_desde_mostrar=hora_desde
         )
-        
+        ##############
+        columnas_actuales = list(tabla['columns'])
+        for i in range(cantidad_cliente):
+            columna_cliente = f"C {i+1}"
+            columnas_actuales.append(columna_cliente)
+
+        tabla['columns'] = columnas_actuales
+
+        # Reconstruir columnas totales: fijas + por cliente
+        columnas_totales = columnas + [f"C {i+1}" for i in range(cantidad_cliente)]
+
+        tabla.destroy()
+        tabla = ttk.Treeview(frame_tabla, columns=columnas_totales, show='headings')
+        tabla.grid(row=0, column=0, sticky="nsew")
+
+        # Scrollbars
+        tabla.config(xscrollcommand=scrollbar_horizontal.set, yscrollcommand=scrollbar_vertical.set)
+        scrollbar_horizontal.config(command=tabla.xview)
+        scrollbar_vertical.config(command=tabla.yview)
+
+        # Estilo de columnas
+        for col in columnas_totales:
+            tabla.heading(col, text=col)
+            tabla.column(col, width=150, anchor="center")
+
+        tabla.column("Cliente\nEvento ID", width=50)
+        tabla.column("Estado Cliente\nEvento", width=130)
+
+        ##############
+        print(f"DEBUG UI: Clientes {cantidad_cliente}.")
         print(f"DEBUG UI: Received {len(vector_estado_display)} rows for display.")
         if len(vector_estado_display) > 1:
             print(f"DEBUG UI: First display data row: {vector_estado_display[1]}")

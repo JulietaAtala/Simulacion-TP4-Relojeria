@@ -22,6 +22,7 @@ class Simulacion:
         self.reloj = 0
         self.iteracion = 0
         self.eventos = [] # ¡Ahora será una cola de prioridad gestionada por heapq!
+        self.cantidadClientes = 0
         
         # Almacenar los valores parametrizables como atributos de la instancia
         self.tll_min, self.tll_max = tll_params
@@ -98,6 +99,7 @@ class Simulacion:
         """Procesa un evento de llegada de cliente."""
         id_cliente = self.id_proximo_cliente
         self.id_proximo_cliente += 1
+        self.cantidadClientes += 1
         
         tipo_cliente, rnd_tipo_cliente = self.generar_tipo_cliente()
         
@@ -285,6 +287,7 @@ class Simulacion:
         self.generar_proxima_llegada() 
         print(f"DEBUG: [ejecutar_simulacion] Eventos iniciales en la lista después de la primera generación: {[e.tipo for e in self.eventos]}")
 
+        max_columnas_clientes = 100  
         headers = [
             "Fila", "Reloj", "Evento", "RND Llegada", "Tiempo entre llegadas", "Proxima llegada",
             "RND Tipo Cliente", "Tipo Cliente", "RND Atencion Ayudante", "Tiempo Atencion Ayudante", "Fin Atencion Ayudante",
@@ -292,8 +295,10 @@ class Simulacion:
             "Estado Ayudante", "Cola Clientes", "Estado Relojero", "Cola Relojes a Reparar", "Relojes Espera Retiro",
             "Acum. Clientes Retiran No Listos", "Acum. Tiempo Ocio Ayudante", "Acum. Tiempo Ocio Relojero",
             "Cont. Clientes", "Cont. Reparaciones", "Porc. Ocup. Ayudante", "Porc. Ocup. Relojero", "Cola Max. Clientes",
-            "Cliente Evento ID", "Estado Cliente Evento" 
+            "Cliente Evento ID", "Estado Cliente Evento"
         ]
+        
+        headers += [f"C {i+1}" for i in range(max_columnas_clientes)]
         # Añadir encabezados como la primera fila para full_simulation_rows (para exportación CSV)
         self.full_simulation_rows.append((headers, []))
 
@@ -408,6 +413,16 @@ class Simulacion:
 
             row_data["Porc. Ocup. Ayudante"] = ""
             row_data["Porc. Ocup. Relojero"] = ""
+            
+            clientes_estado = {}
+            for cliente in self.relojeria.clientes_en_sistema.values():
+                if cliente.id_cliente <= max_columnas_clientes:
+                    estado_str = f"{cliente.tipo_cliente}-{cliente.estado}"
+                    clientes_estado[cliente.id_cliente] = estado_str
+
+            # Agregar las columnas fijas para cada cliente (de 1 a max_columnas_clientes)
+            for i in range(max_columnas_clientes):
+                row_data[f"C {i+1}"] = clientes_estado.get(i+1, "")
 
             ordered_row = [row_data[header] for header in headers]
             self.full_simulation_rows.append((ordered_row, current_row_tags))
@@ -469,4 +484,4 @@ class Simulacion:
             "clientes_retiran_no_listos": self.relojeria.acum_clientes_retiran_no_listos
         }
         
-        return self.resultados_vector_estado, estadisticas_finales, self.full_simulation_rows
+        return self.resultados_vector_estado, estadisticas_finales, self.full_simulation_rows, self.cantidadClientes
