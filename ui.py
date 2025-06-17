@@ -22,7 +22,7 @@ def ventana_simulacion():
     tk.Label(frame_parametros, text="Tiempo a simular (min):", font=("Roboto", 10, "bold")).grid(row=row_idx, column=0, padx=5, pady=2, sticky="w")
     entry_tiempo_simulacion = tk.Entry(frame_parametros, width=8)
     entry_tiempo_simulacion.grid(row=row_idx, column=1, padx=5, pady=2, sticky="w")
-    entry_tiempo_simulacion.insert(0, "480") 
+    entry_tiempo_simulacion.insert(0, "250") 
 
     row_idx += 1
     tk.Label(frame_parametros, text="Mostrar desde hora (min):", font=("Roboto", 10, "bold")).grid(row=row_idx, column=0, padx=5, pady=2, sticky="w")
@@ -142,17 +142,31 @@ def ventana_simulacion():
 
     # Define columns based on the simulation output
     columnas = [
-        "Fila", "Reloj", "Evento", "RND Llegada", "Tiempo entre llegadas", "Proxima llegada",
-        "RND Tipo Cliente", "Tipo Cliente", "RND Atencion Ayudante", "Tiempo Atencion Ayudante", "Fin Atencion Ayudante",
-        "RND Reparacion Relojero", "Tiempo Reparacion Relojero", "Fin Reparacion Relojero", "Fin Limpieza Relojero",
-        "Estado Ayudante", "Cola Clientes", "Estado Relojero", "Cola Relojes a Reparar", "Relojes Espera Retiro",
-        "Acum. Clientes Retiran No Listos", "Acum. Tiempo Ocio Ayudante", "Acum. Tiempo Ocio Relojero",
-        "Cont. Clientes", "Cont. Reparaciones", "Porc. Ocup. Ayudante", "Porc. Ocup. Relojero", "Cola Max. Clientes",
-        "Cliente Evento ID", "Estado Cliente Evento" 
+        "Fila", "Reloj", "Evento", 
+        "RND Llegada", "Tiempo entre llegadas", "Próxima llegada",
+        "RND Tipo Cliente", "Tipo Cliente", 
+        "RND Atención Ayudante", "Tiempo Atención Ayudante", "Fin Atención Ayudante",
+        "RND Reparación Relojero", "Tiempo Reparación Relojero", "Fin Reparación Relojero", "Fin Limpieza Relojero",
+        "Estado Ayudante", "Cola Clientes", "Estado Relojero", 
+        "Cola Relojes a Reparar", "Relojes Espera Retiro",
+        "Acum Clientes No Listos", "Acum Tiempo Ocup Ayudante", "Acum Tiempo Ocup Relojero",
+        "Cont Clientes", "Cont Reparaciones", 
+        "Porc Ocup Ayudante", "Porc Ocup Relojero", "Cola Max Clientes",
+        "Cliente Evento ID", "Estado Cliente Evento"
     ]
+    style = ttk.Style()
 
+# 2. Configurar el estilo para el elemento 'Heading' del Treeview
+#    Añadimos padding vertical (espacio arriba y abajo) para darle más altura.
+#    El primer valor de padding es para izq/der, el segundo para arriba/abajo.
+    style.configure("Treeview.Heading", 
+                    font=('Calibri', 10, 'bold'), 
+                    padding=[0, 15]) # <-- [padding horizontal, padding vertical]
+
+    # Ajustar la altura de las filas de datos también, si es necesario
+    style.configure("Treeview", rowheight=25)
     tabla = ttk.Treeview(frame_tabla, columns=columnas, show='headings')
-    tabla.grid(row=0, column=0, sticky="nsew")
+    tabla.grid(row=0, column=0, sticky="nsew" )
 
     # Configure column headings and widths
     for col in columnas:
@@ -165,7 +179,10 @@ def ventana_simulacion():
 
     # Configure Treeview tags for row coloring
     style = ttk.Style()
-    style.configure("Departed.Treeview", background="lightgray") 
+    style.configure("Departed.Treeview", background="lightgray")
+
+    tabla.tag_configure("evenrow", background="#f2f2f2") # Light gray for even rowsAdd commentMore actions
+    tabla.tag_configure("oddrow", background="#ffffff") # White for odd rows 
 
     # Scrollbars
     scrollbar_horizontal = ttk.Scrollbar(frame_tabla, orient=tk.HORIZONTAL, command=tabla.xview)
@@ -183,6 +200,8 @@ def ventana_simulacion():
     full_sim_data_for_export = []
 
     def ejecutar_simulacion_y_mostrar():
+        nonlocal tabla
+        
         for i in tabla.get_children():
             tabla.delete(i) # Clear previous results
 
@@ -262,12 +281,46 @@ def ventana_simulacion():
             relojes_iniciales=relojes_iniciales
         )
 
+        
         # Call execute_simulation (which now only takes display parameters)
-        vector_estado_display, estadisticas, full_sim_data = sim.ejecutar_simulacion(
+        vector_estado_display, estadisticas, full_sim_data, cantidad_cliente = sim.ejecutar_simulacion(
             iteraciones_a_mostrar=cant_iteraciones, 
             hora_desde_mostrar=hora_desde
         )
+        ##############
+        columnas_actuales = list(tabla['columns'])
+        for i in range(cantidad_cliente):
+            columna_cliente = f"C {i+1}"
+            columnas_actuales.append(columna_cliente)
+
+        tabla['columns'] = columnas_actuales
+
+        # Reconstruir columnas totales: fijas + por cliente
+        columnas_totales = columnas + [f"C {i+1}" for i in range(cantidad_cliente)]
+
+        #tabla.destroy()
+        tabla = ttk.Treeview(frame_tabla, columns=columnas_totales, show='headings')
+        tabla.grid(row=0, column=0, sticky="nsew")
+
+        # Scrollbars
+        tabla.config(xscrollcommand=scrollbar_horizontal.set, yscrollcommand=scrollbar_vertical.set)
+        scrollbar_horizontal.config(command=tabla.xview)
+        scrollbar_vertical.config(command=tabla.yview)
+
+        # Estilo de columnas
+        for col in columnas_totales:
+            tabla.heading(col, text=col)
+            tabla.column(col, width=150, anchor="center")
+
+        tabla.column("Cliente Evento ID", width=50)
+        tabla.column("Estado Cliente Evento", width=130)
         
+        #Estilos
+        tabla.tag_configure("evenrow", background="#f2f2f2")  # Gris claro
+        tabla.tag_configure("oddrow", background="#ffffff") 
+
+        ##############
+        print(f"DEBUG UI: Clientes {cantidad_cliente}.")
         print(f"DEBUG UI: Received {len(vector_estado_display)} rows for display.")
         if len(vector_estado_display) > 1:
             print(f"DEBUG UI: First display data row: {vector_estado_display[1]}")
@@ -277,14 +330,29 @@ def ventana_simulacion():
         global full_sim_data_for_export
         full_sim_data_for_export = full_sim_data
 
-        for row_values in vector_estado_display[0:]: 
-            tags_to_apply = []
-            # Find the corresponding row in full_sim_data to get tags
+        # CÓDIGO CORREGIDO Y MEJORADO
+        row_index = 0  # <--- 1. Añadir un contador de filas
+        for row_values in vector_estado_display[0:]:
+            # 2. Determinar si la fila es par o impar para el color
+            if row_index % 2 == 0:
+                color_tag = "evenrow"  # Gris claro para filas pares
+            else:
+                color_tag = "oddrow"   # Blanco para filas impares
+
+            # 3. Tu lógica original para buscar otros tags (como "Departed") se mantiene,
+            #    pero ahora iniciamos la lista de tags con nuestro tag de color.
+            tags_to_apply = [color_tag]
+
             for original_full_row_values, original_tags in full_sim_data_for_export:
-                if original_full_row_values == row_values: 
-                    tags_to_apply = original_tags
+                if original_full_row_values == row_values:
+                    # Añadimos los otros tags que encuentre
+                    tags_to_apply.extend(original_tags)
                     break
+
+            # Insertar la fila en la tabla con TODOS los tags combinados
             tabla.insert("", tk.END, values=row_values, tags=tuple(tags_to_apply))
+
+            row_index += 1 # <--- 4. Incrementar el contador para la siguiente fila
 
         label_prob_no_reparado.config(text=f"Prob. cliente retira no reparado: {estadisticas['prob_cliente_retira_no_listo']}")
         label_ocup_ayudante.config(text=f"Porc. ocupación ayudante: {estadisticas['porc_ocup_ayudante']}")

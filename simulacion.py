@@ -22,6 +22,7 @@ class Simulacion:
         self.reloj = 0
         self.iteracion = 0
         self.eventos = [] # ¡Ahora será una cola de prioridad gestionada por heapq!
+        self.cantidadClientes = 0
         
         # Almacenar los valores parametrizables como atributos de la instancia
         self.tll_min, self.tll_max = tll_params
@@ -98,6 +99,7 @@ class Simulacion:
         """Procesa un evento de llegada de cliente."""
         id_cliente = self.id_proximo_cliente
         self.id_proximo_cliente += 1
+        self.cantidadClientes += 1
         
         tipo_cliente, rnd_tipo_cliente = self.generar_tipo_cliente()
         
@@ -125,6 +127,7 @@ class Simulacion:
             
             self.relojeria.ayudante.random_tiempo_tarea = rnd_atencion 
             self.relojeria.ayudante.tiempo_fin_tarea = self.reloj + tiempo_atencion
+            cliente.fin_atencion_programado = self.relojeria.ayudante.tiempo_fin_tarea
 
             evento = Evento(tipo="Fin Atencion Ayudante", tiempo=self.relojeria.ayudante.tiempo_fin_tarea, id_cliente=cliente.id_cliente)
             evento.cliente_obj_being_served = cliente 
@@ -138,6 +141,7 @@ class Simulacion:
 
         # Programar la próxima llegada después de procesar la actual
         self.generar_proxima_llegada()
+
 
     def intentar_atender_cliente(self):
         """Intenta que el ayudante atienda a un cliente si está libre y hay clientes en cola."""
@@ -156,6 +160,8 @@ class Simulacion:
             self.relojeria.ayudante.cliente_actual = cliente_atendiendo
             self.relojeria.ayudante.random_tiempo_tarea = rnd_atencion
             self.relojeria.ayudante.tiempo_fin_tarea = self.reloj + tiempo_atencion
+
+            cliente_atendiendo.fin_atencion_programado = self.relojeria.ayudante.tiempo_fin_tarea
 
             evento = Evento(tipo="Fin Atencion Ayudante", tiempo=self.relojeria.ayudante.tiempo_fin_tarea, id_cliente=cliente_atendiendo.id_cliente)
             evento.cliente_obj_being_served = cliente_atendiendo
@@ -237,6 +243,9 @@ class Simulacion:
         reloj_reparado.tiempo_fin_reparacion = evento_actual.tiempo 
 
         duration = reloj_reparado.tiempo_fin_reparacion - reloj_reparado.tiempo_inicio_reparacion
+        print(f"DEBUG RELOJERO: ------------------- !")
+        print(f"DEBUG RELOJERO: Importante FIN {reloj_reparado.tiempo_fin_reparacion}!")
+        print(f"DEBUG RELOJERO: Importante INICIO {reloj_reparado.tiempo_inicio_reparacion}!")
         
         if duration < 0:
             print(f"DEBUG ERROR: Duración de reparación negativa para Reloj ID {reloj_reparado.id_reloj}!")
@@ -262,6 +271,12 @@ class Simulacion:
         self.relojeria.ultimo_tiempo_relojero_libre = evento_actual.tiempo
 
         self.intentar_reparar_reloj()
+    
+    def obtener_proxima_llegada(self):
+        for e in heapq.nsmallest(len(self.eventos), self.eventos):
+            if e.tipo == "Llegada Cliente":
+                return e
+        return None
 
     # Se actualiza la firma de execute_simulacion
     def ejecutar_simulacion(self, iteraciones_a_mostrar, hora_desde_mostrar): 
@@ -282,15 +297,18 @@ class Simulacion:
         self.generar_proxima_llegada() 
         print(f"DEBUG: [ejecutar_simulacion] Eventos iniciales en la lista después de la primera generación: {[e.tipo for e in self.eventos]}")
 
+        max_columnas_clientes = 100  
         headers = [
             "Fila", "Reloj", "Evento", "RND Llegada", "Tiempo entre llegadas", "Proxima llegada",
             "RND Tipo Cliente", "Tipo Cliente", "RND Atencion Ayudante", "Tiempo Atencion Ayudante", "Fin Atencion Ayudante",
             "RND Reparacion Relojero", "Tiempo Reparacion Relojero", "Fin Reparacion Relojero", "Fin Limpieza Relojero",
             "Estado Ayudante", "Cola Clientes", "Estado Relojero", "Cola Relojes a Reparar", "Relojes Espera Retiro",
-            "Acum. Clientes Retiran No Listos", "Acum. Tiempo Ocio Ayudante", "Acum. Tiempo Ocio Relojero",
+            "Acum. Clientes Retiran No Listos", "Acum. Tiempo Ocup Ayudante", "Acum. Tiempo Ocup Relojero",
             "Cont. Clientes", "Cont. Reparaciones", "Porc. Ocup. Ayudante", "Porc. Ocup. Relojero", "Cola Max. Clientes",
-            "Cliente Evento ID", "Estado Cliente Evento" 
+            "Cliente Evento ID", "Estado Cliente Evento"
         ]
+        
+        headers += [f"C {i+1}" for i in range(max_columnas_clientes)]
         # Añadir encabezados como la primera fila para full_simulation_rows (para exportación CSV)
         self.full_simulation_rows.append((headers, []))
 
@@ -339,19 +357,36 @@ class Simulacion:
                     row_data["RND Tipo Cliente"] = f"{client_just_processed.random_tipo_cliente:.4f}"
                     row_data["Tipo Cliente"] = client_just_processed.tipo_cliente
                     row_data["Cliente Evento ID"] = client_just_processed.id_cliente
-                    row_data["Estado Cliente Evento"] = client_just_processed.estado # Será "Siendo Atendido" o "En cola"
+                    row_data["Estado Cliente Evento"] = client_just_processed.estado 
+                    if client_just_processed.estado == "Siendo Atendido":
+                        rnd_val = client_just_processed.random_tiempo_atencion
+                        row_data["RND Atencion Ayudante"] = f"{rnd_val:.4f}" if rnd_val is not None else ""
+                        row_data["Tiempo Atencion Ayudante"] = f"{client_just_processed.tiempo_atencion:.2f}"
+                        row_data["Fin Atencion Ayudante"] = f"{client_just_processed.fin_atencion_programado:.2f}"# Será "Siendo Atendido" o "En cola"
 
             elif evento_actual.tipo == "Fin Atencion Ayudante":
-                client_obj_finished = evento_actual.cliente_obj_being_served 
-                if client_obj_finished:
-                    row_data["RND Atencion Ayudante"] = f"{client_obj_finished.random_tiempo_atencion:.4f}" if client_obj_finished.random_tiempo_atencion is not None else ""
-                    row_data["Tiempo Atencion Ayudante"] = f"{client_obj_finished.tiempo_atencion:.2f}"
-                row_data["Fin Atencion Ayudante"] = f"{evento_actual.tiempo:.2f}"
+                # Primero procesamos el evento. Esto liberará al ayudante
+                # y POSIBLEMENTE atenderá a un nuevo cliente de la cola.
+                self.procesar_fin_atencion_ayudante(evento_actual)
                 
-                self.procesar_fin_atencion_ayudante(evento_actual) # Esto actualiza el estado del sistema y establece el indicador client_departed
+                next_llegada_event = self.obtener_proxima_llegada()
+                if next_llegada_event:
+                    row_data["Proxima llegada"] = f"{next_llegada_event.tiempo:.2f}"
+                else:
+                    row_data["Proxima llegada"] = "N/A"
 
+                # Ahora, verificamos si un NUEVO cliente está siendo atendido.
+                cliente_que_inicia_atencion = self.relojeria.ayudante.cliente_actual
+                if cliente_que_inicia_atencion:
+                    # Si hay un nuevo cliente, este es su INICIO de servicio. Mostramos sus datos.
+                    rnd_val = cliente_que_inicia_atencion.random_tiempo_atencion
+                    row_data["RND Atencion Ayudante"] = f"{rnd_val:.4f}" if rnd_val is not None else ""
+                    row_data["Tiempo Atencion Ayudante"] = f"{cliente_que_inicia_atencion.tiempo_atencion:.2f}"
+                    row_data["Fin Atencion Ayudante"] = f"{cliente_que_inicia_atencion.fin_atencion_programado:.2f}"
+
+                # Mostramos el ID del cliente que TERMINÓ su servicio en esta fila.
                 row_data["Cliente Evento ID"] = evento_actual.client_finished_id
-                row_data["Estado Cliente Evento"] = evento_actual.client_finished_state 
+                row_data["Estado Cliente Evento"] = evento_actual.client_finished_state
 
                 if hasattr(evento_actual, 'client_departed') and evento_actual.client_departed:
                     current_row_tags.append("Departed") 
@@ -370,12 +405,26 @@ class Simulacion:
 
                     row_data["Tiempo Reparacion Relojero"] = f"{repair_duration:.2f}"
                 row_data["Fin Reparacion Relojero"] = f"{evento_actual.tiempo:.2f}"
+                
+                if next_llegada_event:
+                    row_data["Proxima llegada"] = f"{next_llegada_event.tiempo:.2f}"
+                #if client_just_processed:
+                #    if client_just_processed.fin_atencion_programado > self.reloj:
+                #        row_data["Fin Atencion Ayudante"] = f"{client_just_processed.fin_atencion_programado:.2f}"
+                        
                 self.procesar_fin_reparacion_relojero(evento_actual)
                 if self.relojeria.relojero.estado == "Limpiando":
                     row_data["Fin Limpieza Relojero"] = f"{self.relojeria.relojero.tiempo_fin_tarea:.2f}"
 
             elif evento_actual.tipo == "Fin Limpieza Relojero":
                 row_data["Fin Limpieza Relojero"] = f"{evento_actual.tiempo:.2f}"
+                
+                if next_llegada_event:
+                    row_data["Proxima llegada"] = f"{next_llegada_event.tiempo:.2f}"
+                #if client_just_processed:
+                #    if client_just_processed.fin_atencion_programado > self.reloj:
+                #        row_data["Fin Atencion Ayudante"] = f"{client_just_processed.fin_atencion_programado:.2f}"
+                
                 self.procesar_fin_limpieza_relojero(evento_actual)
             
             row_data["Estado Ayudante"] = self.relojeria.ayudante.estado
@@ -385,8 +434,8 @@ class Simulacion:
             row_data["Relojes Espera Retiro"] = len(self.relojeria.relojes_reparados)
             row_data["Acum. Clientes Retiran No Listos"] = self.relojeria.acum_clientes_retiran_no_listos
 
-            row_data["Acum. Tiempo Ocio Ayudante"] = f"{self.relojeria.tiempo_ocio_ayudante:.2f}"
-            row_data["Acum. Tiempo Ocio Relojero"] = f"{self.relojeria.tiempo_ocio_relojero:.2f}"
+            row_data["Acum. Tiempo Ocup Ayudante"] = f"{self.relojeria.ayudante.tiempo_ocupado_acumulado:.2f}"
+            row_data["Acum. Tiempo Ocup Relojero"] = f"{self.relojeria.relojero.tiempo_ocupado_acumulado:.2f}"
 
             row_data["Cont. Clientes"] = self.id_proximo_cliente - 1
             row_data["Cont. Reparaciones"] = self.relojeria.reparaciones_realizadas_relojero
@@ -394,6 +443,16 @@ class Simulacion:
 
             row_data["Porc. Ocup. Ayudante"] = ""
             row_data["Porc. Ocup. Relojero"] = ""
+            
+            clientes_estado = {}
+            for cliente in self.relojeria.clientes_en_sistema.values():
+                if cliente.id_cliente <= max_columnas_clientes:
+                    estado_str = f"{cliente.tipo_cliente}-{cliente.estado}"
+                    clientes_estado[cliente.id_cliente] = estado_str
+
+            # Agregar las columnas fijas para cada cliente (de 1 a max_columnas_clientes)
+            for i in range(max_columnas_clientes):
+                row_data[f"C {i+1}"] = clientes_estado.get(i+1, "")
 
             ordered_row = [row_data[header] for header in headers]
             self.full_simulation_rows.append((ordered_row, current_row_tags))
@@ -431,8 +490,8 @@ class Simulacion:
         final_row_data["Cola Relojes a Reparar"] = len(self.relojeria.cola_relojes_a_reparar)
         final_row_data["Relojes Espera Retiro"] = len(self.relojeria.relojes_reparados)
         final_row_data["Acum. Clientes Retiran No Listos"] = self.relojeria.acum_clientes_retiran_no_listos
-        final_row_data["Acum. Tiempo Ocio Ayudante"] = f"{self.relojeria.tiempo_ocio_ayudante:.2f}"
-        final_row_data["Acum. Tiempo Ocio Relojero"] = f"{self.relojeria.tiempo_ocio_relojero:.2f}"
+        final_row_data["Acum. Tiempo Ocup Ayudante"] = f"{self.relojeria.ayudante.tiempo_ocupado_acumulado:.2f}"
+        final_row_data["Acum. Tiempo Ocup Relojero"] = f"{self.relojeria.relojero.tiempo_ocupado_acumulado:.2f}"
         final_row_data["Cont. Clientes"] = self.id_proximo_cliente - 1
         final_row_data["Cont. Reparaciones"] = self.relojeria.reparaciones_realizadas_relojero
         final_row_data["Porc. Ocup. Ayudante"] = f"{porc_ocup_ayudante:.2f}%"
@@ -455,4 +514,4 @@ class Simulacion:
             "clientes_retiran_no_listos": self.relojeria.acum_clientes_retiran_no_listos
         }
         
-        return self.resultados_vector_estado, estadisticas_finales, self.full_simulation_rows
+        return self.resultados_vector_estado, estadisticas_finales, self.full_simulation_rows, self.cantidadClientes
