@@ -142,18 +142,18 @@ def ventana_simulacion():
 
     # Define columns based on the simulation output
     columnas = [
-    "Fila", "Reloj", "Evento", 
-    "RND\nLlegada", "Tiempo entre\nllegadas", "Próxima\nllegada",
-    "RND Tipo\nCliente", "Tipo\nCliente", 
-    "RND Atención\nAyudante", "Tiempo Atención\nAyudante", "Fin Atención\nAyudante",
-    "RND Reparación\nRelojero", "Tiempo Reparación\nRelojero", "Fin Reparación\nRelojero", "Fin Limpieza\nRelojero",
-    "Estado\nAyudante", "Cola\nClientes", "Estado\nRelojero", 
-    "Cola Relojes\na Reparar", "Relojes Espera\nRetiro",
-    "Acum. Clientes\nRetiran No Listos", "Acum. Tiempo\nOcio Ayudante", "Acum. Tiempo\nOcio Relojero",
-    "Cont.\nClientes", "Cont.\nReparaciones", 
-    "Porc. Ocup.\nAyudante", "Porc. Ocup.\nRelojero", "Cola Max.\nClientes",
-    "Cliente\nEvento ID", "Estado Cliente\nEvento" 
-]
+        "Fila", "Reloj", "Evento", 
+        "RND Llegada", "Tiempo entre llegadas", "Próxima llegada",
+        "RND Tipo Cliente", "Tipo Cliente", 
+        "RND Atención Ayudante", "Tiempo Atención Ayudante", "Fin Atención Ayudante",
+        "RND Reparación Relojero", "Tiempo Reparación Relojero", "Fin Reparación Relojero", "Fin Limpieza Relojero",
+        "Estado Ayudante", "Cola Clientes", "Estado Relojero", 
+        "Cola Relojes a Reparar", "Relojes Espera Retiro",
+        "Acum Clientes No Listos", "Acum Tiempo Ocup Ayudante", "Acum Tiempo Ocup Relojero",
+        "Cont Clientes", "Cont Reparaciones", 
+        "Porc Ocup Ayudante", "Porc Ocup Relojero", "Cola Max Clientes",
+        "Cliente Evento ID", "Estado Cliente Evento"
+    ]
     style = ttk.Style()
 
 # 2. Configurar el estilo para el elemento 'Heading' del Treeview
@@ -174,8 +174,8 @@ def ventana_simulacion():
         tabla.column(col, width=120, anchor="center") 
     
     # Specific width for the new columns
-    tabla.column("Cliente\nEvento ID", width=100)
-    tabla.column("Estado Cliente\nEvento", width=150)
+    tabla.column("Cliente Evento ID", width=100)
+    tabla.column("Estado Cliente Evento", width=150)
 
     # Configure Treeview tags for row coloring
     style = ttk.Style()
@@ -298,7 +298,7 @@ def ventana_simulacion():
         # Reconstruir columnas totales: fijas + por cliente
         columnas_totales = columnas + [f"C {i+1}" for i in range(cantidad_cliente)]
 
-        tabla.destroy()
+        #tabla.destroy()
         tabla = ttk.Treeview(frame_tabla, columns=columnas_totales, show='headings')
         tabla.grid(row=0, column=0, sticky="nsew")
 
@@ -312,8 +312,12 @@ def ventana_simulacion():
             tabla.heading(col, text=col)
             tabla.column(col, width=150, anchor="center")
 
-        tabla.column("Cliente\nEvento ID", width=50)
-        tabla.column("Estado Cliente\nEvento", width=130)
+        tabla.column("Cliente Evento ID", width=50)
+        tabla.column("Estado Cliente Evento", width=130)
+        
+        #Estilos
+        tabla.tag_configure("evenrow", background="#f2f2f2")  # Gris claro
+        tabla.tag_configure("oddrow", background="#ffffff") 
 
         ##############
         print(f"DEBUG UI: Clientes {cantidad_cliente}.")

@@ -243,6 +243,9 @@ class Simulacion:
         reloj_reparado.tiempo_fin_reparacion = evento_actual.tiempo 
 
         duration = reloj_reparado.tiempo_fin_reparacion - reloj_reparado.tiempo_inicio_reparacion
+        print(f"DEBUG RELOJERO: ------------------- !")
+        print(f"DEBUG RELOJERO: Importante FIN {reloj_reparado.tiempo_fin_reparacion}!")
+        print(f"DEBUG RELOJERO: Importante INICIO {reloj_reparado.tiempo_inicio_reparacion}!")
         
         if duration < 0:
             print(f"DEBUG ERROR: Duración de reparación negativa para Reloj ID {reloj_reparado.id_reloj}!")
@@ -293,7 +296,7 @@ class Simulacion:
             "RND Tipo Cliente", "Tipo Cliente", "RND Atencion Ayudante", "Tiempo Atencion Ayudante", "Fin Atencion Ayudante",
             "RND Reparacion Relojero", "Tiempo Reparacion Relojero", "Fin Reparacion Relojero", "Fin Limpieza Relojero",
             "Estado Ayudante", "Cola Clientes", "Estado Relojero", "Cola Relojes a Reparar", "Relojes Espera Retiro",
-            "Acum. Clientes Retiran No Listos", "Acum. Tiempo Ocio Ayudante", "Acum. Tiempo Ocio Relojero",
+            "Acum. Clientes Retiran No Listos", "Acum. Tiempo Ocup Ayudante", "Acum. Tiempo Ocup Relojero",
             "Cont. Clientes", "Cont. Reparaciones", "Porc. Ocup. Ayudante", "Porc. Ocup. Relojero", "Cola Max. Clientes",
             "Cliente Evento ID", "Estado Cliente Evento"
         ]
@@ -404,8 +407,8 @@ class Simulacion:
             row_data["Relojes Espera Retiro"] = len(self.relojeria.relojes_reparados)
             row_data["Acum. Clientes Retiran No Listos"] = self.relojeria.acum_clientes_retiran_no_listos
 
-            row_data["Acum. Tiempo Ocio Ayudante"] = f"{self.relojeria.tiempo_ocio_ayudante:.2f}"
-            row_data["Acum. Tiempo Ocio Relojero"] = f"{self.relojeria.tiempo_ocio_relojero:.2f}"
+            row_data["Acum. Tiempo Ocup Ayudante"] = f"{self.relojeria.ayudante.tiempo_ocupado_acumulado:.2f}"
+            row_data["Acum. Tiempo Ocup Relojero"] = f"{self.relojeria.relojero.tiempo_ocupado_acumulado:.2f}"
 
             row_data["Cont. Clientes"] = self.id_proximo_cliente - 1
             row_data["Cont. Reparaciones"] = self.relojeria.reparaciones_realizadas_relojero
@@ -460,8 +463,8 @@ class Simulacion:
         final_row_data["Cola Relojes a Reparar"] = len(self.relojeria.cola_relojes_a_reparar)
         final_row_data["Relojes Espera Retiro"] = len(self.relojeria.relojes_reparados)
         final_row_data["Acum. Clientes Retiran No Listos"] = self.relojeria.acum_clientes_retiran_no_listos
-        final_row_data["Acum. Tiempo Ocio Ayudante"] = f"{self.relojeria.tiempo_ocio_ayudante:.2f}"
-        final_row_data["Acum. Tiempo Ocio Relojero"] = f"{self.relojeria.tiempo_ocio_relojero:.2f}"
+        final_row_data["Acum. Tiempo Ocup Ayudante"] = f"{self.relojeria.ayudante.tiempo_ocupado_acumulado:.2f}"
+        final_row_data["Acum. Tiempo Ocup Relojero"] = f"{self.relojeria.relojero.tiempo_ocupado_acumulado:.2f}"
         final_row_data["Cont. Clientes"] = self.id_proximo_cliente - 1
         final_row_data["Cont. Reparaciones"] = self.relojeria.reparaciones_realizadas_relojero
         final_row_data["Porc. Ocup. Ayudante"] = f"{porc_ocup_ayudante:.2f}%"
