@@ -271,6 +271,12 @@ class Simulacion:
         self.relojeria.ultimo_tiempo_relojero_libre = evento_actual.tiempo
 
         self.intentar_reparar_reloj()
+    
+    def obtener_proxima_llegada(self):
+        for e in heapq.nsmallest(len(self.eventos), self.eventos):
+            if e.tipo == "Llegada Cliente":
+                return e
+        return None
 
     # Se actualiza la firma de execute_simulacion
     def ejecutar_simulacion(self, iteraciones_a_mostrar, hora_desde_mostrar): 
@@ -361,6 +367,12 @@ class Simulacion:
                 # Primero procesamos el evento. Esto liberará al ayudante
                 # y POSIBLEMENTE atenderá a un nuevo cliente de la cola.
                 self.procesar_fin_atencion_ayudante(evento_actual)
+                
+                next_llegada_event = self.obtener_proxima_llegada()
+                if next_llegada_event:
+                    row_data["Proxima llegada"] = f"{next_llegada_event.tiempo:.2f}"
+                else:
+                    row_data["Proxima llegada"] = "N/A"
 
                 # Ahora, verificamos si un NUEVO cliente está siendo atendido.
                 cliente_que_inicia_atencion = self.relojeria.ayudante.cliente_actual
@@ -392,12 +404,14 @@ class Simulacion:
 
                     row_data["Tiempo Reparacion Relojero"] = f"{repair_duration:.2f}"
                 row_data["Fin Reparacion Relojero"] = f"{evento_actual.tiempo:.2f}"
+                row_data["Proxima llegada"] = f"{next_llegada_event_in_list.tiempo:.2f}"
                 self.procesar_fin_reparacion_relojero(evento_actual)
                 if self.relojeria.relojero.estado == "Limpiando":
                     row_data["Fin Limpieza Relojero"] = f"{self.relojeria.relojero.tiempo_fin_tarea:.2f}"
 
             elif evento_actual.tipo == "Fin Limpieza Relojero":
                 row_data["Fin Limpieza Relojero"] = f"{evento_actual.tiempo:.2f}"
+                row_data["Proxima llegada"] = f"{next_llegada_event_in_list.tiempo:.2f}"
                 self.procesar_fin_limpieza_relojero(evento_actual)
             
             row_data["Estado Ayudante"] = self.relojeria.ayudante.estado
