@@ -404,14 +404,26 @@ class Simulacion:
 
                     row_data["Tiempo Reparacion Relojero"] = f"{repair_duration:.2f}"
                 row_data["Fin Reparacion Relojero"] = f"{evento_actual.tiempo:.2f}"
-                row_data["Proxima llegada"] = f"{next_llegada_event_in_list.tiempo:.2f}"
+                
+                if next_llegada_event:
+                    row_data["Proxima llegada"] = f"{next_llegada_event.tiempo:.2f}"
+                if client_just_processed:
+                    if client_just_processed.fin_atencion_programado > self.reloj:
+                        row_data["Fin Atencion Ayudante"] = f"{client_just_processed.fin_atencion_programado:.2f}"
+                        
                 self.procesar_fin_reparacion_relojero(evento_actual)
                 if self.relojeria.relojero.estado == "Limpiando":
                     row_data["Fin Limpieza Relojero"] = f"{self.relojeria.relojero.tiempo_fin_tarea:.2f}"
 
             elif evento_actual.tipo == "Fin Limpieza Relojero":
                 row_data["Fin Limpieza Relojero"] = f"{evento_actual.tiempo:.2f}"
-                row_data["Proxima llegada"] = f"{next_llegada_event_in_list.tiempo:.2f}"
+                
+                if next_llegada_event:
+                    row_data["Proxima llegada"] = f"{next_llegada_event.tiempo:.2f}"
+                if client_just_processed:
+                    if client_just_processed.fin_atencion_programado > self.reloj:
+                        row_data["Fin Atencion Ayudante"] = f"{client_just_processed.fin_atencion_programado:.2f}"
+                
                 self.procesar_fin_limpieza_relojero(evento_actual)
             
             row_data["Estado Ayudante"] = self.relojeria.ayudante.estado
