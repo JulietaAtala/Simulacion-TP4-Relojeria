@@ -40,6 +40,11 @@ class Simulacion:
         self.resultados_vector_estado = [] # Para almacenar cada fila del vector de estado
         self.full_simulation_rows = [] # Almacena (lista_valores_fila, lista_tags) para todas las filas
 
+        # Atributos para mantener los próximos tiempos de fin de tarea para la visualización
+        self.next_fin_atencion_ayudante_display_time = None # MODIFICACIÓN: Nuevo atributo para persistir el tiempo de fin de atención del ayudante
+        self.next_fin_reparacion_relojero_display_time = None # MODIFICACIÓN: Nuevo atributo para persistir el tiempo de fin de reparación del relojero
+        self.next_fin_limpieza_relojero_display_time = None # MODIFICACIÓN: Nuevo atributo para persistir el tiempo de fin de limpieza del relojero
+
         # Inicializar el primer evento de llegada
         # Esta llamada añadirá el primer evento "Llegada Cliente" a self.eventos
         self.generar_proxima_llegada()
@@ -91,7 +96,7 @@ class Simulacion:
             evento.random_llegada = rnd_llegada 
             evento.tiempo_entre_llegadas_generado = tiempo_entre_llegadas 
             heapq.heappush(self.eventos, evento) # ¡Usar heappush!
-            print(f"DEBUG: [generar_proxima_llegada] Evento programado {evento.tipo} en {evento.tiempo:.2f}. Eventos ahora: {[e.tipo for e in self.eventos]}")
+            print(f"DEBUG: [generar_proxima_llegada] Evento programado {evento.tipo} en {evento.tiempo:.2f}. Eventos ahora: {[e.tipo for e in self.eventos]}") # FIX: Corrected f-string syntax
         else:
             print(f"DEBUG: [generar_proxima_llegada] No hay más llegadas programadas más allá de {self.tiempo_simulacion_max:.2f}")
 
@@ -132,6 +137,7 @@ class Simulacion:
             evento = Evento(tipo="Fin Atencion Ayudante", tiempo=self.relojeria.ayudante.tiempo_fin_tarea, id_cliente=cliente.id_cliente)
             evento.cliente_obj_being_served = cliente 
             heapq.heappush(self.eventos, evento) # ¡Usar heappush!
+            self.next_fin_atencion_ayudante_display_time = evento.tiempo # MODIFICACIÓN: Actualizar el tiempo para la visualización
         else:
             cliente.estado = "En cola" 
             self.relojeria.cola_clientes.append(cliente) 
@@ -166,6 +172,7 @@ class Simulacion:
             evento = Evento(tipo="Fin Atencion Ayudante", tiempo=self.relojeria.ayudante.tiempo_fin_tarea, id_cliente=cliente_atendiendo.id_cliente)
             evento.cliente_obj_being_served = cliente_atendiendo
             heapq.heappush(self.eventos, evento) # ¡Usar heappush!
+            self.next_fin_atencion_ayudante_display_time = evento.tiempo # MODIFICACIÓN: Actualizar el tiempo para la visualización
 
     def procesar_fin_atencion_ayudante(self, evento_actual):
         """Procesa un evento de fin de atención del ayudante."""
@@ -228,6 +235,7 @@ class Simulacion:
             evento = Evento(tipo="Fin Reparacion Relojero", tiempo=self.relojeria.relojero.tiempo_fin_tarea, id_reloj=reloj_a_reparar.id_reloj)
             evento.reloj_obj_being_repaired = reloj_a_reparar
             heapq.heappush(self.eventos, evento) # ¡Usar heappush!
+            self.next_fin_reparacion_relojero_display_time = evento.tiempo # MODIFICACIÓN: Actualizar el tiempo para la visualización
 
     # Se usa el tiempo de limpieza parametrizable (orden_relojero_tiempo)
     def procesar_fin_reparacion_relojero(self, evento_actual):
@@ -249,8 +257,7 @@ class Simulacion:
         
         if duration < 0:
             print(f"DEBUG ERROR: Duración de reparación negativa para Reloj ID {reloj_reparado.id_reloj}!")
-            print(f"  Duración: {duration:.2f}, Inicio: {reloj_reparado.tiempo_inicio_reparacion:.2f}, Fin: {reloj_reparado.tiempo_fin_reparacion:.2f}")
-        # --- FIN IMPRESIONES DE DEPURACIÓN ---
+            print(f"   Duración: {duration:.2f}, Inicio: {reloj_reparado.tiempo_inicio_reparacion:.2f}, Fin: {evento_actual.tiempo:.2f}")
 
         self.relojeria.relojero.tiempo_ocupado_acumulado += duration
         self.relojeria.reparaciones_realizadas_relojero += 1
@@ -263,6 +270,7 @@ class Simulacion:
 
         evento = Evento(tipo="Fin Limpieza Relojero", tiempo=self.relojeria.relojero.tiempo_fin_tarea)
         heapq.heappush(self.eventos, evento) # ¡Usar heappush!
+        self.next_fin_limpieza_relojero_display_time = evento.tiempo # MODIFICACIÓN: Actualizar el tiempo para la visualización
 
     def procesar_fin_limpieza_relojero(self, evento_actual):
         """Procesa un evento de fin de limpieza del relojero."""
@@ -293,6 +301,11 @@ class Simulacion:
 
         Reloj._id_counter = 0 
 
+        # Reiniciar los tiempos de visualización al inicio de cada simulación
+        self.next_fin_atencion_ayudante_display_time = None
+        self.next_fin_reparacion_relojero_display_time = None
+        self.next_fin_limpieza_relojero_display_time = None
+
         # Generar el primer evento de llegada
         self.generar_proxima_llegada() 
         print(f"DEBUG: [ejecutar_simulacion] Eventos iniciales en la lista después de la primera generación: {[e.tipo for e in self.eventos]}")
@@ -315,6 +328,12 @@ class Simulacion:
 
         num_displayed_rows = 0
 
+        # Persistent dictionary to track current display state of each client.
+        # This will be updated based on events and then used to populate the C1, C2, C3... columns.
+        # Initialize all client columns as empty.
+        clientes_estado_para_fila = {i+1: "" for i in range(max_columnas_clientes)} 
+
+
         while self.eventos and self.reloj <= self.tiempo_simulacion_max and self.iteracion < self.iteraciones_max:
             print(f"DEBUG: [ejecutar_simulacion] Iteración {self.iteracion}, Reloj {self.reloj:.2f}. Eventos antes de pop: {[e.tipo for e in self.eventos]}")
             self.iteracion += 1
@@ -329,18 +348,32 @@ class Simulacion:
 
             current_row_tags = [] 
 
+            # MODIFICACIÓN: Populate persistent "Fin Atencion/Reparacion/Limpieza" times before event processing
+            # These values will persist unless explicitly updated by the event processing.
+            if self.next_fin_atencion_ayudante_display_time is not None and self.next_fin_atencion_ayudante_display_time >= self.reloj:
+                row_data["Fin Atencion Ayudante"] = f"{self.next_fin_atencion_ayudante_display_time:.2f}"
+            else:
+                self.next_fin_atencion_ayudante_display_time = None # Clear if time has passed or not scheduled
+
+            if self.next_fin_reparacion_relojero_display_time is not None and self.next_fin_reparacion_relojero_display_time >= self.reloj:
+                row_data["Fin Reparacion Relojero"] = f"{self.next_fin_reparacion_relojero_display_time:.2f}"
+            else:
+                self.next_fin_reparacion_relojero_display_time = None # Clear if time has passed or not scheduled
+            
+            if self.next_fin_limpieza_relojero_display_time is not None and self.next_fin_limpieza_relojero_display_time >= self.reloj:
+                row_data["Fin Limpieza Relojero"] = f"{self.next_fin_limpieza_relojero_display_time:.2f}"
+            else:
+                self.next_fin_limpieza_relojero_display_time = None # Clear if time has passed or not scheduled
+
+
             if evento_actual.tipo == "Llegada Cliente":
-                row_data["RND Llegada"] = f"{evento_actual.random_llegada:.4f}" # RND para la llegada *actual*
-                row_data["Tiempo entre llegadas"] = f"{evento_actual.tiempo_entre_llegadas_generado:.2f}" # TLL para la llegada *actual*
+                row_data["RND Llegada"] = f"{evento_actual.random_llegada:.4f}"
+                row_data["Tiempo entre llegadas"] = f"{evento_actual.tiempo_entre_llegadas_generado:.2f}"
                 
-                # Procesar la llegada actual. Esto también programará la *próxima* llegada
-                # y la añadirá a self.eventos (la cola de prioridad).
-                self.procesar_llegada_cliente(evento_actual)
+                self.procesar_llegada_cliente(evento_actual) # This might set next_fin_atencion_ayudante_display_time
                 
-                # Ahora, obtener el próximo evento "Llegada Cliente" de la cola de prioridad.
-                # heapq.nsmallest(1, self.eventos, key=lambda e: e.tiempo if e.tipo == "Llegada Cliente" else float('inf'))
                 next_llegada_event_in_list = None
-                for e in heapq.nsmallest(len(self.eventos), self.eventos): # Iterar sobre los más pequeños en la cola
+                for e in heapq.nsmallest(len(self.eventos), self.eventos):
                     if e.tipo == "Llegada Cliente":
                         next_llegada_event_in_list = e
                         break
@@ -348,9 +381,8 @@ class Simulacion:
                 if next_llegada_event_in_list:
                     row_data["Proxima llegada"] = f"{next_llegada_event_in_list.tiempo:.2f}"
                 else:
-                    row_data["Proxima llegada"] = "N/A" # No hay más llegadas futuras programadas dentro del tiempo de simulación
+                    row_data["Proxima llegada"] = "N/A"
                 
-                # Rellenar datos específicos del cliente para el evento *actual*
                 current_client_id = self.id_proximo_cliente - 1 
                 client_just_processed = self.relojeria.clientes_en_sistema.get(current_client_id)
                 if client_just_processed:
@@ -362,29 +394,38 @@ class Simulacion:
                         rnd_val = client_just_processed.random_tiempo_atencion
                         row_data["RND Atencion Ayudante"] = f"{rnd_val:.4f}" if rnd_val is not None else ""
                         row_data["Tiempo Atencion Ayudante"] = f"{client_just_processed.tiempo_atencion:.2f}"
-                        row_data["Fin Atencion Ayudante"] = f"{client_just_processed.fin_atencion_programado:.2f}"# Será "Siendo Atendido" o "En cola"
+                        # The self.next_fin_atencion_ayudante_display_time would have been set in procesar_llegada_cliente
+                        # or intentar_atender_cliente if a client started being attended.
+                        # MODIFICACIÓN: Asegurarse que se muestre el valor actual si se acaba de programar
+                        row_data["Fin Atencion Ayudante"] = f"{self.next_fin_atencion_ayudante_display_time:.2f}" if self.next_fin_atencion_ayudante_display_time is not None else ""
+
 
             elif evento_actual.tipo == "Fin Atencion Ayudante":
-                # Primero procesamos el evento. Esto liberará al ayudante
-                # y POSIBLEMENTE atenderá a un nuevo cliente de la cola.
-                self.procesar_fin_atencion_ayudante(evento_actual)
-                
+                # MODIFICACIÓN: Clear the scheduled time as this event is now happening (for the *previous* client)
+                self.next_fin_atencion_ayudante_display_time = None 
+
+                self.procesar_fin_atencion_ayudante(evento_actual) # This might schedule a new Fin Atencion Ayudante event
+
                 next_llegada_event = self.obtener_proxima_llegada()
                 if next_llegada_event:
                     row_data["Proxima llegada"] = f"{next_llegada_event.tiempo:.2f}"
                 else:
                     row_data["Proxima llegada"] = "N/A"
 
-                # Ahora, verificamos si un NUEVO cliente está siendo atendido.
+                # MODIFICACIÓN: If a new client is being attended immediately after the previous one left,
+                # update the "Fin Atencion Ayudante" for the new client.
                 cliente_que_inicia_atencion = self.relojeria.ayudante.cliente_actual
                 if cliente_que_inicia_atencion:
-                    # Si hay un nuevo cliente, este es su INICIO de servicio. Mostramos sus datos.
-                    rnd_val = cliente_que_inicia_atencion.random_tiempo_atencion
-                    row_data["RND Atencion Ayudante"] = f"{rnd_val:.4f}" if rnd_val is not None else ""
+                    # This new 'fin' time is what should persist in future rows
+                    self.next_fin_atencion_ayudante_display_time = cliente_que_inicia_atencion.fin_atencion_programado
+                    row_data["RND Atencion Ayudante"] = f"{cliente_que_inicia_atencion.random_tiempo_atencion:.4f}" if cliente_que_inicia_atencion.random_tiempo_atencion is not None else ""
                     row_data["Tiempo Atencion Ayudante"] = f"{cliente_que_inicia_atencion.tiempo_atencion:.2f}"
                     row_data["Fin Atencion Ayudante"] = f"{cliente_que_inicia_atencion.fin_atencion_programado:.2f}"
+                else: # No new client started being attended, clear the displayed fin attention
+                    self.next_fin_atencion_ayudante_display_time = None
+                    row_data["Fin Atencion Ayudante"] = "" # Explicitly clear for this row if no new client
 
-                # Mostramos el ID del cliente que TERMINÓ su servicio en esta fila.
+                # Show the ID of the client who *just finished* their service in this row.
                 row_data["Cliente Evento ID"] = evento_actual.client_finished_id
                 row_data["Estado Cliente Evento"] = evento_actual.client_finished_state
 
@@ -392,41 +433,46 @@ class Simulacion:
                     current_row_tags.append("Departed") 
                 
             elif evento_actual.tipo == "Fin Reparacion Relojero":
+                # MODIFICACIÓN: Clear the scheduled time as this event is now happening
+                self.next_fin_reparacion_relojero_display_time = None
+
                 reloj_obj_finished = evento_actual.reloj_obj_being_repaired 
                 if reloj_obj_finished:
                     row_data["RND Reparacion Relojero"] = f"{self.relojeria.relojero.random_tiempo_tarea:.4f}" if self.relojeria.relojero.random_tiempo_tarea is not None else ""
                     
                     repair_duration = evento_actual.tiempo - reloj_obj_finished.tiempo_inicio_reparacion
                     
-                    # Impresión de depuración también incluida aquí para el valor de visualización
                     if repair_duration < 0:
                         print(f"DEBUG DISPLAY ERROR: Duración de visualización negativa para Reloj ID {reloj_obj_finished.id_reloj}!")
-                        print(f"  Duración: {repair_duration:.2f}, Inicio: {reloj_obj_finished.tiempo_inicio_reparacion:.2f}, Fin: {evento_actual.tiempo:.2f}")
+                        print(f"   Duración: {repair_duration:.2f}, Inicio: {reloj_obj_finished.tiempo_inicio_reparacion:.2f}, Fin: {evento_actual.tiempo:.2f}")
 
                     row_data["Tiempo Reparacion Relojero"] = f"{repair_duration:.2f}"
-                row_data["Fin Reparacion Relojero"] = f"{evento_actual.tiempo:.2f}"
+                row_data["Fin Reparacion Relojero"] = f"{evento_actual.tiempo:.2f}" # This is the *actual* finish time
+
+                self.procesar_fin_reparacion_relojero(evento_actual) # This will schedule Fin Limpieza Relojero
                 
-                if next_llegada_event:
-                    row_data["Proxima llegada"] = f"{next_llegada_event.tiempo:.2f}"
-                #if client_just_processed:
-                #    if client_just_processed.fin_atencion_programado > self.reloj:
-                #        row_data["Fin Atencion Ayudante"] = f"{client_just_processed.fin_atencion_programado:.2f}"
-                        
-                self.procesar_fin_reparacion_relojero(evento_actual)
+                # MODIFICACIÓN: Update the persistent display time for cleaning
                 if self.relojeria.relojero.estado == "Limpiando":
                     row_data["Fin Limpieza Relojero"] = f"{self.relojeria.relojero.tiempo_fin_tarea:.2f}"
+                    self.next_fin_limpieza_relojero_display_time = self.relojeria.relojero.tiempo_fin_tarea
+
 
             elif evento_actual.tipo == "Fin Limpieza Relojero":
-                row_data["Fin Limpieza Relojero"] = f"{evento_actual.tiempo:.2f}"
-                
-                if next_llegada_event:
-                    row_data["Proxima llegada"] = f"{next_llegada_event.tiempo:.2f}"
-                #if client_just_processed:
-                #    if client_just_processed.fin_atencion_programado > self.reloj:
-                #        row_data["Fin Atencion Ayudante"] = f"{client_just_processed.fin_atencion_programado:.2f}"
+                # MODIFICACIÓN: Clear the scheduled time as this event is now happening
+                self.next_fin_limpieza_relojero_display_time = None
+
+                row_data["Fin Limpieza Relojero"] = f"{evento_actual.tiempo:.2f}" # This is the *actual* finish time
                 
                 self.procesar_fin_limpieza_relojero(evento_actual)
             
+            # --- Common updates for all events ---
+            # Update 'Proxima llegada' after potentially generating a new one
+            next_llegada_event = self.obtener_proxima_llegada()
+            if next_llegada_event:
+                row_data["Proxima llegada"] = f"{next_llegada_event.tiempo:.2f}"
+            else:
+                row_data["Proxima llegada"] = "N/A"
+
             row_data["Estado Ayudante"] = self.relojeria.ayudante.estado
             row_data["Cola Clientes"] = len(self.relojeria.cola_clientes)
             row_data["Estado Relojero"] = self.relojeria.relojero.estado
@@ -444,15 +490,28 @@ class Simulacion:
             row_data["Porc. Ocup. Ayudante"] = ""
             row_data["Porc. Ocup. Relojero"] = ""
             
-            clientes_estado = {}
+            # Reset clientes_estado_para_fila for this row
+            for client_id in clientes_estado_para_fila:
+                clientes_estado_para_fila[client_id] = ""
+
+            # Populate based on current clients in system
             for cliente in self.relojeria.clientes_en_sistema.values():
                 if cliente.id_cliente <= max_columnas_clientes:
                     estado_str = f"{cliente.tipo_cliente}-{cliente.estado}"
-                    clientes_estado[cliente.id_cliente] = estado_str
+                    clientes_estado_para_fila[cliente.id_cliente] = estado_str
 
-            # Agregar las columnas fijas para cada cliente (de 1 a max_columnas_clientes)
+            # Add columns for each client (from 1 to max_columnas_clientes)
             for i in range(max_columnas_clientes):
-                row_data[f"C {i+1}"] = clientes_estado.get(i+1, "")
+                row_data[f"C {i+1}"] = clientes_estado_para_fila.get(i+1, "")
+
+            # Special handling for a client who just departed in THIS row's event
+            if evento_actual.tipo == "Fin Atencion Ayudante" and \
+               hasattr(evento_actual, 'client_finished_id') and \
+               evento_actual.client_finished_id is not None and \
+               evento_actual.client_finished_id <= max_columnas_clientes:
+                # This ensures "Se Fue" overrides any subsequent state for this *specific* client in this *specific* row
+                row_data[f"C {evento_actual.client_finished_id}"] = "Se Fue"
+
 
             ordered_row = [row_data[header] for header in headers]
             self.full_simulation_rows.append((ordered_row, current_row_tags))
@@ -498,6 +557,15 @@ class Simulacion:
         final_row_data["Porc. Ocup. Relojero"] = f"{porc_ocup_relojero:.2f}%"
         final_row_data["Cola Max. Clientes"] = self.relojeria.max_cola_clientes
         
+        # Ensure client columns in the final row reflect their ultimate state (e.g., empty if departed)
+        for i in range(max_columnas_clientes):
+            client_id = i + 1
+            if client_id in self.relojeria.clientes_en_sistema:
+                client = self.relojeria.clientes_en_sistema[client_id]
+                final_row_data[f"C {client_id}"] = f"{client.tipo_cliente}-{client.estado}"
+            else:
+                final_row_data[f"C {client_id}"] = "" # Clear if client is not in system at final time
+
         ordered_final_row = [final_row_data[header] for header in headers]
         
         if not self.resultados_vector_estado or self.resultados_vector_estado[-1][0] != "FINAL":
