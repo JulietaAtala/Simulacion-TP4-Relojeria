@@ -407,9 +407,9 @@ class Simulacion:
                 
                 if next_llegada_event:
                     row_data["Proxima llegada"] = f"{next_llegada_event.tiempo:.2f}"
-                if client_just_processed:
-                    if client_just_processed.fin_atencion_programado > self.reloj:
-                        row_data["Fin Atencion Ayudante"] = f"{client_just_processed.fin_atencion_programado:.2f}"
+                #if client_just_processed:
+                #    if client_just_processed.fin_atencion_programado > self.reloj:
+                #        row_data["Fin Atencion Ayudante"] = f"{client_just_processed.fin_atencion_programado:.2f}"
                         
                 self.procesar_fin_reparacion_relojero(evento_actual)
                 if self.relojeria.relojero.estado == "Limpiando":
@@ -420,9 +420,9 @@ class Simulacion:
                 
                 if next_llegada_event:
                     row_data["Proxima llegada"] = f"{next_llegada_event.tiempo:.2f}"
-                if client_just_processed:
-                    if client_just_processed.fin_atencion_programado > self.reloj:
-                        row_data["Fin Atencion Ayudante"] = f"{client_just_processed.fin_atencion_programado:.2f}"
+                #if client_just_processed:
+                #    if client_just_processed.fin_atencion_programado > self.reloj:
+                #        row_data["Fin Atencion Ayudante"] = f"{client_just_processed.fin_atencion_programado:.2f}"
                 
                 self.procesar_fin_limpieza_relojero(evento_actual)
             
