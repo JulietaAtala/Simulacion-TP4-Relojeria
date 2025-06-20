@@ -149,7 +149,7 @@ def ventana_simulacion():
         "RND Reparación Relojero", "Tiempo Reparación Relojero", "Fin Reparación Relojero", "Fin Limpieza Relojero",
         "Estado Ayudante", "Cola Clientes", "Estado Relojero", 
         "Cola Relojes a Reparar", "Relojes Espera Retiro",
-        "Acum Clientes No Listos", "Acum Tiempo Ocup Ayudante", "Acum Tiempo Ocup Relojero",
+        "Acum Clientes Retirar", "Acum Clientes No Listos", "Acum Tiempo Ocup Ayudante", "Acum Tiempo Ocup Relojero",
         "Cont Clientes", "Cont Reparaciones", 
         "Porc Ocup Ayudante", "Porc Ocup Relojero", "Cola Max Clientes",
         "Cliente Evento ID", "Estado Cliente Evento"

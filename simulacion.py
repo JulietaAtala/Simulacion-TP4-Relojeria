@@ -19,6 +19,7 @@ class Simulacion:
         
         self.tiempo_simulacion_max = tiempo_simulacion_max
         self.iteraciones_max = iteraciones_max
+        self.reloj_anterior = 0
         self.reloj = 0
         self.iteracion = 0
         self.eventos = [] # ¡Ahora será una cola de prioridad gestionada por heapq!
@@ -182,7 +183,7 @@ class Simulacion:
         self.relojeria.ayudante.estado = "Libre"
         self.relojeria.ayudante.cliente_actual = None
         
-        self.relojeria.ayudante.tiempo_ocupado_acumulado += cliente_atendido.tiempo_atencion
+        #self.relojeria.ayudante.tiempo_ocupado_acumulado += cliente_atendido.tiempo_atencion
         self.relojeria.clientes_atendidos_ayudante += 1
         self.relojeria.ultimo_tiempo_ayudante_libre = evento_actual.tiempo
 
@@ -259,7 +260,7 @@ class Simulacion:
             print(f"DEBUG ERROR: Duración de reparación negativa para Reloj ID {reloj_reparado.id_reloj}!")
             print(f"   Duración: {duration:.2f}, Inicio: {reloj_reparado.tiempo_inicio_reparacion:.2f}, Fin: {evento_actual.tiempo:.2f}")
 
-        self.relojeria.relojero.tiempo_ocupado_acumulado += duration
+        #self.relojeria.relojero.tiempo_ocupado_acumulado += duration
         self.relojeria.reparaciones_realizadas_relojero += 1
 
         self.relojeria.relojero.estado = "Limpiando"
@@ -307,7 +308,8 @@ class Simulacion:
         self.next_fin_limpieza_relojero_display_time = None
 
         # Generar el primer evento de llegada
-        self.generar_proxima_llegada() 
+        self.generar_proxima_llegada()
+        
         print(f"DEBUG: [ejecutar_simulacion] Eventos iniciales en la lista después de la primera generación: {[e.tipo for e in self.eventos]}")
 
         max_columnas_clientes = 100  
@@ -316,7 +318,7 @@ class Simulacion:
             "RND Tipo Cliente", "Tipo Cliente", "RND Atencion Ayudante", "Tiempo Atencion Ayudante", "Fin Atencion Ayudante",
             "RND Reparacion Relojero", "Tiempo Reparacion Relojero", "Fin Reparacion Relojero", "Fin Limpieza Relojero",
             "Estado Ayudante", "Cola Clientes", "Estado Relojero", "Cola Relojes a Reparar", "Relojes Espera Retiro",
-            "Acum. Clientes Retiran No Listos", "Acum. Tiempo Ocup Ayudante", "Acum. Tiempo Ocup Relojero",
+            "Acum. Clientes Retiran", "Acum. Clientes Retiran No Listos", "Acum. Tiempo Ocup Ayudante", "Acum. Tiempo Ocup Relojero",
             "Cont. Clientes", "Cont. Reparaciones", "Porc. Ocup. Ayudante", "Porc. Ocup. Relojero", "Cola Max. Clientes",
             "Cliente Evento ID", "Estado Cliente Evento"
         ]
@@ -338,7 +340,19 @@ class Simulacion:
             print(f"DEBUG: [ejecutar_simulacion] Iteración {self.iteracion}, Reloj {self.reloj:.2f}. Eventos antes de pop: {[e.tipo for e in self.eventos]}")
             self.iteracion += 1
             evento_actual = heapq.heappop(self.eventos) # ¡Usar heappop para obtener el evento más próximo!
+            print(f"---------------------------------------------!")
+            print(f"DEBUG RELOJ ANTES {self.reloj}!")
+            print(f"DEBUG AYUDANTE ANTES {self.relojeria.ayudante.estado}!")
+            self.reloj_anterior = self.reloj
             self.reloj = evento_actual.tiempo
+            if self.relojeria.ayudante.estado == 'Ocupado':
+                self.relojeria.ayudante.tiempo_ocupado_acumulado += self.reloj - self.reloj_anterior
+            if self.relojeria.relojero.estado == 'Ocupado':
+                self.relojeria.relojero.tiempo_ocupado_acumulado += self.reloj - self.reloj_anterior
+            print(f"DEBUG RELOJ DESPUES {self.reloj}!")
+            print(f"DEBUG AYUDANTE DESPUES {self.relojeria.ayudante.estado}!")
+            print(f"---------------------------------------------!")
+            
             print(f"DEBUG: [ejecutar_simulacion] Evento sacado {evento_actual.tipo} en {evento_actual.tiempo:.2f}. Eventos después de pop: {[e.tipo for e in self.eventos]}")
 
             row_data = {header: "" for header in headers} 
@@ -364,7 +378,6 @@ class Simulacion:
                 row_data["Fin Limpieza Relojero"] = f"{self.next_fin_limpieza_relojero_display_time:.2f}"
             else:
                 self.next_fin_limpieza_relojero_display_time = None # Clear if time has passed or not scheduled
-
 
             if evento_actual.tipo == "Llegada Cliente":
                 row_data["RND Llegada"] = f"{evento_actual.random_llegada:.4f}"
@@ -478,6 +491,9 @@ class Simulacion:
             row_data["Estado Relojero"] = self.relojeria.relojero.estado
             row_data["Cola Relojes a Reparar"] = len(self.relojeria.cola_relojes_a_reparar)
             row_data["Relojes Espera Retiro"] = len(self.relojeria.relojes_reparados)
+            
+            #Agrege la row de abajo pero no me la esta agregando
+            row_data["Acum. Clientes Retiran"] = self.relojeria.total_clientes_tipo_retirar_que_llegaron
             row_data["Acum. Clientes Retiran No Listos"] = self.relojeria.acum_clientes_retiran_no_listos
 
             row_data["Acum. Tiempo Ocup Ayudante"] = f"{self.relojeria.ayudante.tiempo_ocupado_acumulado:.2f}"
@@ -548,6 +564,7 @@ class Simulacion:
         final_row_data["Estado Relojero"] = self.relojeria.relojero.estado
         final_row_data["Cola Relojes a Reparar"] = len(self.relojeria.cola_relojes_a_reparar)
         final_row_data["Relojes Espera Retiro"] = len(self.relojeria.relojes_reparados)
+        final_row_data["Acum. Clientes Retiran"] = self.relojeria.total_clientes_tipo_retirar_que_llegaron
         final_row_data["Acum. Clientes Retiran No Listos"] = self.relojeria.acum_clientes_retiran_no_listos
         final_row_data["Acum. Tiempo Ocup Ayudante"] = f"{self.relojeria.ayudante.tiempo_ocupado_acumulado:.2f}"
         final_row_data["Acum. Tiempo Ocup Relojero"] = f"{self.relojeria.relojero.tiempo_ocupado_acumulado:.2f}"
