@@ -216,7 +216,7 @@ def ventana_simulacion():
             tll_min = float(entry_tll_min.get())
             tll_max = float(entry_tll_max.get())
             if not (0 <= tll_min < tll_max):
-                raise ValueError("Tiempo entre llegadas (min) debe ser 0 <= min < max.")
+                raise ValueError("Tiempo entre llegadas (min ) debe ser 0 <= min < max.")
 
             # Client Type Probabilities
             prob_comprar = float(entry_prob_comprar.get()) / 100.0
