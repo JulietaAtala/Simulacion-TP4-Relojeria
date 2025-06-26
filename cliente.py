@@ -1,4 +1,3 @@
-# cliente.py
 class Cliente:
     def __init__(self, id_cliente, tiempo_llegada, tipo_cliente=None, tiempo_atencion=0, estado="En cola"):
         self.id_cliente = id_cliente

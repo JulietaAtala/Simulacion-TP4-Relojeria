@@ -1,4 +1,3 @@
-# reloj.py
 class Reloj:
     _id_counter = 0
 

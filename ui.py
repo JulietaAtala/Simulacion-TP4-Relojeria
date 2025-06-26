@@ -7,17 +7,14 @@ from simulacion import Simulacion
 def ventana_simulacion():
     ventana = tk.Tk()
     ventana.title("Simulación de Relojería")
-    ventana.geometry("1800x950") # Increased size significantly for more parameters
+    ventana.geometry("1800x950") 
 
-    # Configure grid to allow resizing
     ventana.grid_rowconfigure(2, weight=1)
     ventana.grid_columnconfigure(0, weight=1)
 
-    # Frame for simulation parameters
     frame_parametros = tk.Frame(ventana, bd=2, relief="groove")
     frame_parametros.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
 
-    # --- SIMULATION CONTROL PARAMETERS ---
     row_idx = 0
     tk.Label(frame_parametros, text="Tiempo a simular (min):", font=("Roboto", 10, "bold")).grid(row=row_idx, column=0, padx=5, pady=2, sticky="w")
     entry_tiempo_simulacion = tk.Entry(frame_parametros, width=8)
@@ -36,10 +33,8 @@ def ventana_simulacion():
     entry_cant_iteraciones.grid(row=row_idx, column=1, padx=5, pady=2, sticky="w")
     entry_cant_iteraciones.insert(0, "50") 
     
-    # --- DYNAMIC SIMULATION PARAMETERS (Marked in Red) ---
     col_start = 2 # Start a new column for these parameters
 
-    # Client Arrival Interval U(13, 17)
     row_idx = 0
     tk.Label(frame_parametros, text="Tiempo entre llegadas (min):", font=("Roboto", 10, "bold")).grid(row=row_idx, column=col_start, padx=5, pady=2, sticky="w")
     tk.Label(frame_parametros, text="U(", font=("Roboto", 10)).grid(row=row_idx, column=col_start + 1, sticky="w")
@@ -52,7 +47,7 @@ def ventana_simulacion():
     entry_tll_max.insert(0, "17")
     tk.Label(frame_parametros, text=")", font=("Roboto", 10)).grid(row=row_idx, column=col_start + 5, sticky="w")
 
-    # Client Type Probabilities (45%, 25%, 30%)
+
     row_idx += 1
     tk.Label(frame_parametros, text="Prob. Cliente Comprar (%):", font=("Roboto", 10, "bold")).grid(row=row_idx, column=col_start, padx=5, pady=2, sticky="w")
     entry_prob_comprar = tk.Entry(frame_parametros, width=8)
@@ -71,7 +66,6 @@ def ventana_simulacion():
     entry_prob_retirar.grid(row=row_idx, column=col_start + 1, padx=5, pady=2, sticky="w")
     entry_prob_retirar.insert(0, "30")
 
-    # Sales Duration U(6, 10)
     row_idx += 1
     tk.Label(frame_parametros, text="Tiempo Venta (min):", font=("Roboto", 10, "bold")).grid(row=row_idx, column=col_start, padx=5, pady=2, sticky="w")
     tk.Label(frame_parametros, text="U(", font=("Roboto", 10)).grid(row=row_idx, column=col_start + 1, sticky="w")
@@ -84,14 +78,12 @@ def ventana_simulacion():
     entry_venta_max.insert(0, "10")
     tk.Label(frame_parametros, text=")", font=("Roboto", 10)).grid(row=row_idx, column=col_start + 5, sticky="w")
 
-    # Deliver/Pickup Duration (3 min)
     row_idx += 1
     tk.Label(frame_parametros, text="Tiempo Atención (Entregar/Retirar, min):", font=("Roboto", 10, "bold")).grid(row=row_idx, column=col_start, padx=5, pady=2, sticky="w")
     entry_atencion_fija = tk.Entry(frame_parametros, width=8)
     entry_atencion_fija.grid(row=row_idx, column=col_start + 1, padx=5, pady=2, sticky="w")
     entry_atencion_fija.insert(0, "3")
 
-    # Repair Duration U(18, 22)
     row_idx += 1
     tk.Label(frame_parametros, text="Tiempo Reparación (min):", font=("Roboto", 10, "bold")).grid(row=row_idx, column=col_start, padx=5, pady=2, sticky="w")
     tk.Label(frame_parametros, text="U(", font=("Roboto", 10)).grid(row=row_idx, column=col_start + 1, sticky="w")
@@ -104,14 +96,12 @@ def ventana_simulacion():
     entry_reparacion_max.insert(0, "22")
     tk.Label(frame_parametros, text=")", font=("Roboto", 10)).grid(row=row_idx, column=col_start + 5, sticky="w")
 
-    # Cleanup Duration (5 min)
     row_idx += 1
     tk.Label(frame_parametros, text="Tiempo Orden Relojero (min):", font=("Roboto", 10, "bold")).grid(row=row_idx, column=col_start, padx=5, pady=2, sticky="w")
     entry_orden_relojero = tk.Entry(frame_parametros, width=8)
     entry_orden_relojero.grid(row=row_idx, column=col_start + 1, padx=5, pady=2, sticky="w")
     entry_orden_relojero.insert(0, "5")
 
-    # Initial Clocks for Pickup (3)
     row_idx += 1
     tk.Label(frame_parametros, text="Relojes iniciales en espera de retiro:", font=("Roboto", 10, "bold")).grid(row=row_idx, column=col_start, padx=5, pady=2, sticky="w")
     entry_relojes_iniciales = tk.Entry(frame_parametros, width=8)
@@ -119,11 +109,9 @@ def ventana_simulacion():
     entry_relojes_iniciales.insert(0, "3")
 
 
-    # Frame for statistics
     frame_estadisticas = tk.Frame(ventana, bd=2, relief="groove")
     frame_estadisticas.grid(row=1, column=0, padx=10, pady=10, sticky="ew")
 
-    # Labels for statistics
     label_prob_no_reparado = tk.Label(frame_estadisticas, text="Prob. cliente retira no reparado: ", font=("Roboto", 10))
     label_prob_no_reparado.grid(row=0, column=0, padx=5, pady=2, sticky="w")
     
@@ -136,11 +124,9 @@ def ventana_simulacion():
     label_cola_max = tk.Label(frame_estadisticas, text="Cola máxima de clientes: ", font=("Roboto", 10))
     label_cola_max.grid(row=3, column=0, padx=5, pady=2, sticky="w")
 
-    # Treeview for the state vector
     frame_tabla = tk.Frame(ventana)
     frame_tabla.grid(row=2, column=0, padx=10, pady=10, sticky="nsew")
 
-    # Define columns based on the simulation output
     columnas = [
         "Fila", "Reloj", "Evento", 
         "RND Llegada", "Tiempo entre llegadas", "Próxima llegada",
@@ -156,35 +142,30 @@ def ventana_simulacion():
     ]
     style = ttk.Style()
 
-# 2. Configurar el estilo para el elemento 'Heading' del Treeview
-#    Añadimos padding vertical (espacio arriba y abajo) para darle más altura.
-#    El primer valor de padding es para izq/der, el segundo para arriba/abajo.
     style.configure("Treeview.Heading", 
                     font=('Calibri', 10, 'bold'), 
-                    padding=[0, 15]) # <-- [padding horizontal, padding vertical]
+                    padding=[0, 15]) 
 
-    # Ajustar la altura de las filas de datos también, si es necesario
     style.configure("Treeview", rowheight=25)
     tabla = ttk.Treeview(frame_tabla, columns=columnas, show='headings')
     tabla.grid(row=0, column=0, sticky="nsew" )
 
-    # Configure column headings and widths
+
     for col in columnas:
         tabla.heading(col, text=col)
         tabla.column(col, width=120, anchor="center") 
     
-    # Specific width for the new columns
+
     tabla.column("Cliente Evento ID", width=100)
     tabla.column("Estado Cliente Evento", width=150)
 
-    # Configure Treeview tags for row coloring
     style = ttk.Style()
     style.configure("Departed.Treeview", background="lightgray")
 
-    tabla.tag_configure("evenrow", background="#f2f2f2") # Light gray for even rowsAdd commentMore actions
-    tabla.tag_configure("oddrow", background="#ffffff") # White for odd rows 
+    tabla.tag_configure("evenrow", background="#f2f2f2") 
+    tabla.tag_configure("oddrow", background="#ffffff") 
 
-    # Scrollbars
+
     scrollbar_horizontal = ttk.Scrollbar(frame_tabla, orient=tk.HORIZONTAL, command=tabla.xview)
     scrollbar_horizontal.grid(row=1, column=0, sticky="ew")
     tabla.config(xscrollcommand=scrollbar_horizontal.set)
@@ -206,26 +187,22 @@ def ventana_simulacion():
             tabla.delete(i) # Clear previous results
 
         try:
-            # --- Get simulation control parameters ---
             tiempo_simulacion = float(entry_tiempo_simulacion.get())
             hora_desde = float(entry_hora_desde.get())
             cant_iteraciones = int(entry_cant_iteraciones.get())
 
-            # --- Get dynamic simulation parameters ---
-            # Client Arrival Interval
             tll_min = float(entry_tll_min.get())
             tll_max = float(entry_tll_max.get())
             if not (0 <= tll_min < tll_max):
                 raise ValueError("Tiempo entre llegadas (min ) debe ser 0 <= min < max.")
 
-            # Client Type Probabilities
             prob_comprar = float(entry_prob_comprar.get()) / 100.0
             prob_entregar = float(entry_prob_entregar.get()) / 100.0
             prob_retirar = float(entry_prob_retirar.get()) / 100.0
             prob_sum = prob_comprar + prob_entregar + prob_retirar
-            if abs(prob_sum - 1.0) > 0.001: # Allow for minor float precision differences
+            if abs(prob_sum - 1.0) > 0.001: 
                 messagebox.showwarning("Advertencia de Probabilidades", f"Las probabilidades de tipo de cliente suman {prob_sum*100:.2f}%, no 100%. Se normalizarán.")
-                # Normalize probabilities if they don't sum to 1.0
+                
                 norm_factor = 1.0 / prob_sum
                 prob_comprar *= norm_factor
                 prob_entregar *= norm_factor
@@ -233,29 +210,29 @@ def ventana_simulacion():
             
             probabilidades_cliente = [prob_comprar, prob_entregar, prob_retirar]
 
-            # Sales Duration
+            
             venta_min = float(entry_venta_min.get())
             venta_max = float(entry_venta_max.get())
             if not (0 <= venta_min < venta_max):
                 raise ValueError("Tiempo Venta (min) debe ser 0 <= min < max.")
 
-            # Deliver/Pickup Duration
+            
             atencion_fija = float(entry_atencion_fija.get())
             if atencion_fija < 0:
                 raise ValueError("Tiempo Atención (Entregar/Retirar) no puede ser negativo.")
 
-            # Repair Duration
+            
             reparacion_min = float(entry_reparacion_min.get())
             reparacion_max = float(entry_reparacion_max.get())
             if not (0 <= reparacion_min < reparacion_max):
                 raise ValueError("Tiempo Reparación (min) debe ser 0 <= min < max.")
 
-            # Cleanup Duration
+            
             orden_relojero = float(entry_orden_relojero.get())
             if orden_relojero < 0:
                 raise ValueError("Tiempo Orden Relojero no puede ser negativo.")
 
-            # Initial Clocks for Pickup
+            
             relojes_iniciales = int(entry_relojes_iniciales.get())
             if relojes_iniciales < 0:
                 raise ValueError("Relojes iniciales no puede ser negativo.")
@@ -268,10 +245,9 @@ def ventana_simulacion():
             return
 
 
-        # Pass all parameters to the Simulacion constructor
         sim = Simulacion(
             tiempo_simulacion_max=tiempo_simulacion, 
-            iteraciones_max=100000, # Fixed max iterations for the simulation loop
+            iteraciones_max=100000, 
             tll_params=(tll_min, tll_max),
             prob_cliente_params=probabilidades_cliente,
             venta_params=(venta_min, venta_max),
@@ -282,12 +258,11 @@ def ventana_simulacion():
         )
 
         
-        # Call execute_simulation (which now only takes display parameters)
         vector_estado_display, estadisticas, full_sim_data, cantidad_cliente = sim.ejecutar_simulacion(
             iteraciones_a_mostrar=cant_iteraciones, 
             hora_desde_mostrar=hora_desde
         )
-        ##############
+        
         columnas_actuales = list(tabla['columns'])
         for i in range(cantidad_cliente):
             columna_cliente = f"C {i+1}"
@@ -295,19 +270,19 @@ def ventana_simulacion():
 
         tabla['columns'] = columnas_actuales
 
-        # Reconstruir columnas totales: fijas + por cliente
+
         columnas_totales = columnas + [f"C {i+1}" for i in range(cantidad_cliente)]
 
-        #tabla.destroy()
+        
         tabla = ttk.Treeview(frame_tabla, columns=columnas_totales, show='headings')
         tabla.grid(row=0, column=0, sticky="nsew")
 
-        # Scrollbars
+        
         tabla.config(xscrollcommand=scrollbar_horizontal.set, yscrollcommand=scrollbar_vertical.set)
         scrollbar_horizontal.config(command=tabla.xview)
         scrollbar_vertical.config(command=tabla.yview)
 
-        # Estilo de columnas
+        
         for col in columnas_totales:
             tabla.heading(col, text=col)
             tabla.column(col, width=150, anchor="center")
@@ -315,11 +290,10 @@ def ventana_simulacion():
         tabla.column("Cliente Evento ID", width=50)
         tabla.column("Estado Cliente Evento", width=130)
         
-        #Estilos
-        tabla.tag_configure("evenrow", background="#f2f2f2")  # Gris claro
+        tabla.tag_configure("evenrow", background="#f2f2f2")  
         tabla.tag_configure("oddrow", background="#ffffff") 
 
-        ##############
+        
         print(f"DEBUG UI: Clientes {cantidad_cliente}.")
         print(f"DEBUG UI: Received {len(vector_estado_display)} rows for display.")
         if len(vector_estado_display) > 1:
@@ -330,26 +304,24 @@ def ventana_simulacion():
         global full_sim_data_for_export
         full_sim_data_for_export = full_sim_data
 
-        # CÓDIGO CORREGIDO Y MEJORADO
-        row_index = 0  # <--- 1. Añadir un contador de filas
+  
+        row_index = 0  
         for row_values in vector_estado_display[0:]:
-            # 2. Determinar si la fila es par o impar para el color
+            
             if row_index % 2 == 0:
-                color_tag = "evenrow"  # Gris claro para filas pares
+                color_tag = "evenrow"  
             else:
-                color_tag = "oddrow"   # Blanco para filas impares
+                color_tag = "oddrow"   
 
-            # 3. Tu lógica original para buscar otros tags (como "Departed") se mantiene,
-            #    pero ahora iniciamos la lista de tags con nuestro tag de color.
             tags_to_apply = [color_tag]
 
             for original_full_row_values, original_tags in full_sim_data_for_export:
                 if original_full_row_values == row_values:
-                    # Añadimos los otros tags que encuentre
+                    
                     tags_to_apply.extend(original_tags)
                     break
 
-            # Insertar la fila en la tabla con TODOS los tags combinados
+            
             tabla.insert("", tk.END, values=row_values, tags=tuple(tags_to_apply))
 
             row_index += 1 # <--- 4. Incrementar el contador para la siguiente fila

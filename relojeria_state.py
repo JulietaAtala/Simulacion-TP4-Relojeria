@@ -1,7 +1,6 @@
-# relojeria_state.py (or wherever your Relojeria class is)
 from collections import deque
 from empleado import Empleado
-from reloj import Reloj # Make sure you import Reloj
+from reloj import Reloj 
 
 class Relojeria:
     def __init__(self, num_relojes_iniciales_para_retiro=3):
@@ -10,14 +9,12 @@ class Relojeria:
         self.cola_clientes = deque()
         self.cola_relojes_a_reparar = deque()
 
-        # This line is essential!
         self.relojes_reparados = []
         for _ in range(num_relojes_iniciales_para_retiro):
             self.relojes_reparados.append(Reloj(estado="Reparado"))
 
         self.clientes_en_sistema = {}
 
-        # Statistics accumulators
         self.acum_clientes_retiran_no_listos = 0
         self.tiempo_ocio_ayudante = 0
         self.tiempo_ocio_relojero = 0

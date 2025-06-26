@@ -1,4 +1,3 @@
-# empleado.py
 class Empleado:
     def __init__(self, id_empleado, tipo_empleado, estado="Libre", tiempo_ocupado_acumulado=0, tiempo_fin_tarea=0):
         self.id_empleado = id_empleado
