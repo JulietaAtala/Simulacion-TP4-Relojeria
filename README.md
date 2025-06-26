@@ -1,6 +1,6 @@
-TP4- SIMULACIÓN
+Trabajo práctico realizado por estudiantes de la UTN de Córdoba para la materia Simulación.
 
-- Relojería
+TP4 - Relojería
 
 En un negocio de arreglo y venta de relojes hay un relojero y su ayudante.  
 El ayudante tiene como tarea atender a las personas que entran en el negocio (llegan respetando una 
